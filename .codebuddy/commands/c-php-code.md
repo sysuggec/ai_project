@@ -1,5 +1,5 @@
 ---
-description: 编写 PHP 代码的标准工作流程，调用 s-php-coder 技能确保代码质量符合项目规范
+description: 编写 PHP 代码的标准工作流程，调用 php-coder 技能确保代码质量符合项目规范
 alwaysApply: false
 enabled: true
 ---
@@ -8,7 +8,7 @@ enabled: true
 
 ## 命令说明
 
-当用户请求编写 PHP 代码时，自动调用 `s-php-coder` 技能执行标准化工作流程。
+当用户请求编写 PHP 代码时，自动调用 `php-coder` 技能执行标准化工作流程。
 
 ## 执行方式
 
