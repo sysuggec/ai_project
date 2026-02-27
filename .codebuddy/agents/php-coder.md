@@ -4,8 +4,8 @@ description: PHP 代码编写代理，用于执行复杂的 PHP 代码编写任�
 path: agents/php-coder
 tools: search_file, search_content, read_file, list_files, read_lints, replace_in_file, write_to_file, delete_files, create_rule, execute_command, web_fetch, web_search, use_skill
 agentMode: agentic
-enabled: true
-enabledAutoRun: true
+enabled: false
+enabledAutoRun: false
 ---
 # PHP Coder Agent
 
