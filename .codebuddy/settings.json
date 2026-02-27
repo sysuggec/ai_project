@@ -1,0 +1,36 @@
+{
+  "alwaysThinkingEnabled": true,
+  "maxThinkingTokens": 31999,
+  "performance": {
+    "contextWindowWarning": {
+      "threshold": 0.8,
+      "avoidOperations": [
+        "大规模重构",
+        "跨多文件的功能实现",
+        "复杂交互的调试"
+      ],
+      "lowSensitivityTasks": [
+        "单文件编辑",
+        "独立工具创建",
+        "文档更新",
+        "简单bug修复"
+      ]
+    },
+    "extendedThinking": {
+      "enabled": true,
+      "defaultTokens": 31999,
+      "toggleShortcut": {
+        "macos": "Option+T",
+        "windows": "Alt+T",
+        "linux": "Alt+T"
+      },
+      "verboseModeShortcut": "Ctrl+O",
+      "complexTaskWorkflow": [
+        "确保扩展思考已启用（默认开启）",
+        "启用计划模式进行结构化处理",
+        "使用多轮批评进行彻底分析",
+        "使用分角色子agent获取多元视角"
+      ]
+    }
+  }
+}

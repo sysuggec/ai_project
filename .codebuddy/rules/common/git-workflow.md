@@ -1,26 +1,24 @@
----
-description: 
-alwaysApply: false
-enabled: true
-updatedAt: 2026-02-27T08:19:32.559Z
-provider: 
----
-
 # Git 工作流
 
-## 提交信息格式
-
+## 提交消息格式
 ```
 <类型>: <描述>
+
+<可选正文>
 ```
 
-类型: feat, fix, refactor, docs, test, chore, perf, ci
+类型：feat, fix, refactor, docs, test, chore, perf, ci
 
-## Pull Request 工作流程
+注意：署名通过 ~/.claude/settings.json 全局禁用。
 
-创建 PR 时：
-1. 分析完整的提交历史（不仅仅是最新提交）
+## Pull Request 工作流
+
+创建PR时：
+1. 分析完整提交历史（不仅是最新提交）
 2. 使用 `git diff [base-branch]...HEAD` 查看所有变更
-3. 编写全面的 PR 摘要
-4. 包含测试计划和待办事项
-5. 新分支使用 `-u` 标志推送
+3. 起草全面的PR摘要
+4. 包含带有TODO的测试计划
+5. 如果是新分支，使用 `-u` 标志推送
+
+> 关于git操作前的完整开发流程（规划、TDD、代码审查），
+> 请参见 [development-workflow.md](./development-workflow.md)。
