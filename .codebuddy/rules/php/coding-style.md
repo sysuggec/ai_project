@@ -52,6 +52,93 @@ provider:
 - 使用 camelCase：`$userName`, `$isActive`
 - 常量使用 UPPER_CASE：`MAX_RETRIES`, `DEFAULT_TIMEOUT`
 
+## 命名空间规范
+
+### 命名空间结构
+- 命名空间必须与目录结构一致（遵循 PSR-4）
+- 根命名空间通常为项目名称或厂商名：`App\`、`Acme\`
+- 使用有意义的子命名空间划分功能模块：
+
+```
+App\
+├── Controllers\      # 控制器
+├── Models\           # 数据模型
+├── Services\         # 业务逻辑服务
+├── Repositories\     # 数据访问层
+├── Exceptions\       # 异常类
+├── Helpers\          # 辅助类
+├── Traits\           # Trait 复用代码
+├── Interfaces\       # 接口定义
+└── Config\           # 配置类
+```
+
+### use 语句规范
+- 每个 `use` 语句导入一个类、函数或常量
+- `use` 语句块按字母顺序排列
+- `use` 语句块后必须有空行
+- 避免使用别名（`as`）除非存在命名冲突：
+
+```php
+<?php
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Exceptions\UserNotFoundException;
+use App\Interfaces\UserRepositoryInterface;
+use App\Models\User;
+
+class UserService
+{
+    // ...
+}
+```
+
+### 导入规则
+- **必须使用 `use` 导入**，禁止在代码中使用完全限定名：
+
+```php
+// ❌ 错误：使用完全限定名
+public function get(): \App\Models\User
+{
+    return new \App\Models\User();
+}
+
+// ✅ 正确：使用 use 导入
+use App\Models\User;
+
+public function get(): User
+{
+    return new User();
+}
+```
+
+### 多级命名空间
+- 使用子命名空间组织相关类：
+
+```php
+namespace App\Services\Payment;
+namespace App\Services\Payment\Gateways;
+namespace App\Services\Payment\Validators;
+```
+
+### 全局命名空间
+- 避免在全局命名空间中定义类、函数、常量
+- 如需使用内置类，直接使用类名（无需导入）：
+
+```php
+// 内置类直接使用
+$date = new DateTime();
+$error = new Exception('Error');
+
+// 或显式导入（推荐）
+use DateTime;
+use Exception;
+
+$date = new DateTime();
+$error = new Exception('Error');
+```
+
 ## 代码组织
 
 ### 文件结构
@@ -158,6 +245,64 @@ function getUserData(int $userId): ?array
 - 配置适当的错误报告级别
 - 使用 `try-catch` 块处理可恢复错误
 - 记录错误日志以便调试
+
+## 文件加载
+
+- **避免使用 `require`、`require_once`、`include`、`include_once`**
+- 使用 Composer 自动加载（PSR-4）加载类文件
+- 如需动态加载，使用 `class_exists()` 配合自动加载：
+  ```php
+  // 推荐：依赖 Composer 自动加载
+  use App\Services\UserService;
+
+  // 动态加载类（如插件系统）
+  if (class_exists($className)) {
+      $instance = new $className();
+  }
+  ```
+- 配置 `composer.json` 的 `autoload` 和 `autoload-dev`：
+
+## PHP 版本兼容性
+
+- **目标版本：PHP 7.4**（即使本地开发环境使用 PHP 8+）
+- 所有代码必须兼容 PHP 7.4 语法和特性
+- Composer 依赖版本需确保支持 PHP 7.4：
+  ```json
+  {
+      "require": {
+          "php": "^7.4|^8.0",
+          "laravel/framework": "^8.0"
+      }
+  }
+  ```
+- **PHP 7.4 与 8.x 差异注意事项**：
+  - 可使用命名参数（PHP 8+），但 PHP 7.4 不支持
+  - 可使用联合类型（PHP 8+），PHP 7.4 需分开处理或使用 `@var` 注解
+  - 可使用 `match` 表达式（PHP 8+），PHP 7.4 需用 `switch`
+  - 可使用 `nullsafe` 操作符 `?->`（PHP 8+），PHP 7.4 需用传统 null 检查
+  - 可使用构造函数属性提升（PHP 8+），PHP 7.4 需传统写法
+  - 属性类型声明可使用 `mixed`（PHP 8+），PHP 7.4 不支持
+  - `str_contains()`、`str_starts_with()`、`str_ends_with()` 为 PHP 8+ 新增，需使用 polyfill 或替代方案
+
+  ```php
+  // PHP 8+ 写法（不兼容 7.4）
+  public function __construct(private UserRepository $repo) {}
+
+  // PHP 7.4 兼容写法
+  private UserRepository $repo;
+  public function __construct(UserRepository $repo)
+  {
+      $this->repo = $repo;
+  }
+  ```
+
+  ```php
+  // PHP 8+ 写法（不兼容 7.4）
+  $name = $user?->profile?->name;
+
+  // PHP 7.4 兼容写法
+  $name = $user && $user->profile ? $user->profile->name : null;
+  ```
 
 ## 代码质量
 
