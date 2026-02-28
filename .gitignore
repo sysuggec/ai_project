@@ -5,3 +5,8 @@ __pycache__/
 .vscode/
 *.swp
 *.swo
+
+# PHP
+vendor/
+.phpunit.result.cache
+composer.lock
