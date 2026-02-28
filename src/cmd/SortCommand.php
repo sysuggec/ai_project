@@ -30,10 +30,20 @@ class SortCommand
     private const DEFAULT_SORT_TYPE = 'bubble';
 
     /**
+     * 默认排序顺序
+     */
+    private const DEFAULT_ORDER = 'asc';
+
+    /**
+     * 有效排序顺序
+     */
+    private const VALID_ORDERS = ['asc', 'desc'];
+
+    /**
      * 执行排序命令
      *
      * @param array $argv 命令行参数
-     * @return array 排序后的数组
+     * @return array<int|float> 排序后的数组
      * @throws \InvalidArgumentException 当参数无效时
      */
     public function run(array $argv): array
@@ -51,19 +61,27 @@ class SortCommand
 
         // 获取排序器并执行排序
         $sorter = $this->getSorter($parsed['type']);
+        $result = $sorter->sort($data);
 
-        return $sorter->sort($data);
+        // 如果是降序，反转数组
+        if ($parsed['order'] === 'desc') {
+            $result = array_reverse($result);
+        }
+
+        return $result;
     }
 
     /**
      * 解析命令行参数
      *
      * @param array $argv 命令行参数
-     * @return array{type: string, input: string}
+     * @return array{type: string, order: string, input: string}
+     * @throws \InvalidArgumentException 当参数无效时
      */
     private function parseArguments(array $argv): array
     {
         $type = self::DEFAULT_SORT_TYPE;
+        $order = self::DEFAULT_ORDER;
         $input = '';
 
         $argc = count($argv);
@@ -71,13 +89,22 @@ class SortCommand
             if ($argv[$i] === '-t' && isset($argv[$i + 1])) {
                 $type = $argv[$i + 1];
                 $i++;
-            } elseif ($argv[$i] !== '-t') {
+            } elseif ($argv[$i] === '-o' && isset($argv[$i + 1])) {
+                $order = strtolower($argv[$i + 1]);
+                $i++;
+            } elseif ($argv[$i] !== '-t' && $argv[$i] !== '-o') {
                 $input = $argv[$i];
             }
         }
 
+        // 验证排序顺序
+        if (!in_array($order, self::VALID_ORDERS, true)) {
+            throw new \InvalidArgumentException("Unknown sort order: {$order}");
+        }
+
         return [
             'type' => $type,
+            'order' => $order,
             'input' => $input,
         ];
     }
@@ -136,21 +163,24 @@ class SortCommand
     public static function getHelp(): string
     {
         $types = implode(', ', array_keys(self::SORTERS));
+        $orders = implode(', ', self::VALID_ORDERS);
 
         return <<<HELP
-Usage: php sort.php [-t <type>] <numbers>
+Usage: php sort.php [-t <type>] [-o <order>] <numbers>
 
 Options:
   -t <type>    Sort algorithm type (default: bubble)
                Available types: {$types}
+  -o <order>   Sort order (default: asc)
+               Available orders: {$orders}
 
 Arguments:
   <numbers>    Comma-separated numbers to sort
 
 Examples:
   php sort.php -t bubble 3,1,2
-  php sort.php -t quick 5,2,8,1,9
-  php sort.php 1,5,3,2
+  php sort.php -t quick -o desc 5,2,8,1,9
+  php sort.php -o desc 1,5,3,2
 
 HELP;
     }

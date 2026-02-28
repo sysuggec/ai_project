@@ -116,4 +116,67 @@ class SortCommandTest extends TestCase
         $this->assertStringContainsString('bubble', $help);
         $this->assertStringContainsString('quick', $help);
     }
+
+    /**
+     * 测试降序排序
+     */
+    public function testRunWithDescendingOrder(): void
+    {
+        $command = new SortCommand();
+        $result = $command->run(['sort', '-o', 'desc', '3,1,2']);
+        $this->assertSame([3, 2, 1], $result);
+    }
+
+    /**
+     * 测试显式指定升序排序
+     */
+    public function testRunWithExplicitAscendingOrder(): void
+    {
+        $command = new SortCommand();
+        $result = $command->run(['sort', '-o', 'asc', '3,1,2']);
+        $this->assertSame([1, 2, 3], $result);
+    }
+
+    /**
+     * 测试降序排序与排序类型组合
+     */
+    public function testRunWithDescendingOrderAndSortType(): void
+    {
+        $command = new SortCommand();
+        $result = $command->run(['sort', '-t', 'quick', '-o', 'desc', '5,2,8,1,9']);
+        $this->assertSame([9, 8, 5, 2, 1], $result);
+    }
+
+    /**
+     * 测试默认排序顺序为升序
+     */
+    public function testDefaultOrderIsAscending(): void
+    {
+        $command = new SortCommand();
+        $result = $command->run(['sort', '3,1,2']);
+        $this->assertSame([1, 2, 3], $result);
+    }
+
+    /**
+     * 测试无效的排序顺序抛出异常
+     */
+    public function testRunWithInvalidOrder(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown sort order: invalid');
+
+        $command = new SortCommand();
+        $command->run(['sort', '-o', 'invalid', '1,2,3']);
+    }
+
+    /**
+     * 测试帮助信息包含排序顺序选项
+     */
+    public function testHelpContainsOrderOption(): void
+    {
+        $help = SortCommand::getHelp();
+        $this->assertStringContainsString('-o', $help);
+        $this->assertStringContainsString('asc', $help);
+        $this->assertStringContainsString('desc', $help);
+    }
 }
