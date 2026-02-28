@@ -1,4 +1,0 @@
-/vendor/
-/.env
-/database/*.db
-/composer.lock

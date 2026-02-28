@@ -19,6 +19,3 @@
 3. 起草全面的PR摘要
 4. 包含带有TODO的测试计划
 5. 如果是新分支，使用 `-u` 标志推送
-
-> 关于git操作前的完整开发流程（规划、TDD、代码审查），
-> 请参见 [development-workflow.md](./development-workflow.md)。
