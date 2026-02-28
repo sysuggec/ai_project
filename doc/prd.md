@@ -1265,7 +1265,7 @@ CREATE INDEX IF NOT EXISTS idx_status ON t_refund_order(status);
 ## 13. 目录结构
 
 ```
-/home/17sing/riskctl_system/
+/workspace/php
 ├── action/
 │   ├── index.php                  # 统一入口与路由分发，解析 action=Risk.xxx
 │   └── RiskControl.php            # 退款上报/风控查询/撤销接口控制器
