@@ -1,13 +1,12 @@
 ---
 name: kimi
-model: Kimi-K2.5
+model: kimi-k2.5
 description: Kimi-K2.5 模型子代理。作为指令执行者，严格遵守调用方的命令，具备调用skill和读写文件的能力。
-permissions: auto
-tools:
-  execute_command:
-    requires_approval: false
+tools: list_files, search_file, search_content, read_file, read_lints, replace_in_file, write_to_file, execute_command, create_rule, delete_files, web_fetch, use_skill, web_search
+agentMode: agentic
+enabled: true
+enabledAutoRun: true
 ---
-
 # Kimi-K2.5 Subagent
 
 ## 概述
