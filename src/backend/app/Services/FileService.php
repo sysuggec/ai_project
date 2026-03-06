@@ -27,13 +27,18 @@ class FileService
         $files = $query->orderBy('created_at', 'desc')->get();
 
         return $files->map(function ($file) {
+            $uploadTime = $file->upload_time;
+            if ($uploadTime instanceof \DateTimeInterface) {
+                $uploadTime = $uploadTime->format('Y-m-d H:i:s');
+            }
+            
             return [
                 'id' => $file->id,
                 'name' => $file->name,
                 'size' => $file->size,
                 'mime_type' => $file->mime_type,
-                'directory' => $file->directory->path,
-                'upload_time' => $file->upload_time->format('Y-m-d H:i:s'),
+                'directory' => $file->directory?->path ?? '/',
+                'upload_time' => $uploadTime,
             ];
         })->toArray();
     }

@@ -12,5 +12,9 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    outDir: '../backend/public',
+    emptyOutDir: true,
   }
 })

@@ -128,6 +128,11 @@ class UploadController
 
         return Response::success([
             'histories' => $histories->map(function ($h) {
+                $uploadTime = $h->upload_time;
+                if ($uploadTime instanceof \DateTimeInterface) {
+                    $uploadTime = $uploadTime->format('Y-m-d H:i:s');
+                }
+                
                 return [
                     'id' => $h->id,
                     'original_name' => $h->original_name,
@@ -136,7 +141,7 @@ class UploadController
                     'is_instant_upload' => $h->is_instant_upload,
                     'status' => $h->status,
                     'error_message' => $h->error_message,
-                    'upload_time' => $h->upload_time->format('Y-m-d H:i:s'),
+                    'upload_time' => $uploadTime,
                 ];
             }),
             'total' => $total,

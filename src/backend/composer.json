@@ -8,7 +8,8 @@
         "illuminate/events": "^10.0",
         "symfony/http-foundation": "^6.0",
         "symfony/routing": "^6.0",
-        "vlucas/phpdotenv": "^5.5"
+        "vlucas/phpdotenv": "^5.5",
+        "symfony/mime": "^7.4"
     },
     "autoload": {
         "psr-4": {

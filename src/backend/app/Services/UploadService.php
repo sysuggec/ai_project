@@ -6,7 +6,7 @@ namespace App\Services;
 use App\Models\FileModel;
 use App\Models\DirectoryModel;
 use App\Models\UploadHistoryModel;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 class UploadService
 {
@@ -38,7 +38,10 @@ class UploadService
         string $directoryPath,
         ?string $tempPath = null
     ): FileModel {
-        return DB::transaction(function () use ($originalName, $hash, $size, $mimeType, $directoryPath, $tempPath) {
+        $connection = Capsule::connection();
+        $connection->beginTransaction();
+
+        try {
             $directory = $this->getOrCreateDirectory($directoryPath);
 
             $existingFile = FileModel::where('hash', $hash)
@@ -47,6 +50,7 @@ class UploadService
                 ->first();
 
             if ($existingFile) {
+                $connection->commit();
                 return $existingFile;
             }
 
@@ -67,17 +71,34 @@ class UploadService
                 'mime_type' => $mimeType,
                 'directory_id' => $directory->id,
                 'storage_path' => $storagePath,
-                'upload_time' => now(),
+                'upload_time' => date('Y-m-d H:i:s'),
             ]);
 
             $this->recordHistory($file, $directoryPath, $tempPath === null);
 
+            $connection->commit();
             return $file;
-        });
+        } catch (\Exception $e) {
+            $connection->rollBack();
+            throw $e;
+        }
     }
 
     public function getOrCreateDirectory(string $path): DirectoryModel
     {
+        // 处理根目录
+        if ($path === '/' || $path === '') {
+            $directory = DirectoryModel::where('path', '/')->first();
+            if ($directory) {
+                return $directory;
+            }
+            return DirectoryModel::create([
+                'name' => 'root',
+                'path' => '/',
+                'parent_id' => null,
+            ]);
+        }
+
         $directory = DirectoryModel::where('path', $path)->first();
 
         if ($directory) {
@@ -124,7 +145,7 @@ class UploadService
             'hash' => $file->hash,
             'is_instant_upload' => $isInstant,
             'status' => 'success',
-            'upload_time' => now(),
+            'upload_time' => date('Y-m-d H:i:s'),
         ]);
     }
 }
