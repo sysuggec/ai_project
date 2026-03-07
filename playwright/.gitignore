@@ -1,0 +1,10 @@
+node_modules/
+test-results/
+reports/html-report/
+screenshots/
+playwright-report/
+playwright/.cache/
+tests/fixtures/temp/
+*.log
+.env
+.env.local

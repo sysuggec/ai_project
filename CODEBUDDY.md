@@ -10,6 +10,7 @@
 - **后端**: 原生 PHP 8.0+ + Eloquent ORM（自定义轻量级框架，非 Laravel）
 - **数据库**: SQLite
 - **HTTP**: Symfony HttpFoundation
+- **E2E 测试**: Playwright
 
 ## 核心命令
 
@@ -26,6 +27,12 @@ cd src/frontend && npm run build
 # 安装依赖
 cd src/backend && composer install
 cd src/frontend && npm install
+
+# E2E 测试
+cd playwright && npm install           # 首次安装测试依赖
+cd playwright && npm test              # 运行所有测试
+cd playwright && npm run test:ui       # UI 模式运行测试
+cd playwright && npm run report        # 查看测试报告
 ```
 
 ## 架构要点
@@ -58,6 +65,7 @@ cd src/frontend && npm install
 - **技术方案**: `docs/solution.md` - 架构设计、API 设计、数据库设计、组件结构
 - **部署指南**: `docs/deployment.md` - 环境要求、Nginx 配置、生产部署、常见问题
 - **测试文档**: `test/README.md` - 测试报告、测试脚本说明
+- **E2E 测试**: `playwright/README.md` - Playwright 端到端测试说明
 - **PHP 代码规范**: 参考 `.codebuddy/rules/coding-style` 中的 PHP 规范
 
 ## 开发约定
