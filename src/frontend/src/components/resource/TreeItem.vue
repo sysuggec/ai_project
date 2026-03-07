@@ -7,6 +7,7 @@
     >
       <span class="icon">📁</span>
       <span class="name">{{ item.name }}</span>
+      <span v-if="item.path === '/'" class="root-tag">根</span>
     </div>
     <template v-if="item.children && item.children.length > 0">
       <TreeItem
@@ -65,5 +66,14 @@ defineEmits(['select'])
 
 .name {
   font-size: 14px;
+}
+
+.root-tag {
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: #1890ff;
+  color: white;
+  font-size: 10px;
+  border-radius: 4px;
 }
 </style>

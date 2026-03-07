@@ -92,11 +92,11 @@ class UploadService
             if ($directory) {
                 return $directory;
             }
-            return DirectoryModel::create([
-                'name' => 'root',
-                'path' => '/',
-                'parent_id' => null,
-            ]);
+        return DirectoryModel::create([
+            'name' => '根目录',
+            'path' => '/',
+            'parent_id' => null,
+        ]);
         }
 
         $directory = DirectoryModel::where('path', $path)->first();

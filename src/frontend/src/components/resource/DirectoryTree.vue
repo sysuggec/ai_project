@@ -2,17 +2,11 @@
   <div class="directory-tree">
     <h3 class="title">目录</h3>
     <div class="tree">
-      <div
-        :class="['tree-item', { active: selected === '/' }]"
-        @click="$emit('select', '/')"
-      >
-        <span class="icon">📁</span>
-        <span class="name">根目录</span>
-      </div>
       <template v-for="dir in directories" :key="dir.id">
         <TreeItem
           :item="dir"
           :selected="selected"
+          :level="0"
           @select="$emit('select', $event)"
         />
       </template>

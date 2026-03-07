@@ -41,14 +41,14 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const directories = ref([{ id: 0, name: '根目录', path: '/' }])
+const directories = ref([])
 const newDirectoryName = ref('')
 const showToast = inject('showToast')
 
 onMounted(async () => {
   try {
     const result = await getDirectories()
-    directories.value = [{ id: 0, name: '根目录', path: '/' }, ...flattenDirectories(result.directories)]
+    directories.value = flattenDirectories(result.directories)
   } catch (error) {
     console.error('加载目录失败', error)
   }
@@ -78,7 +78,7 @@ const createDirectory = async () => {
   try {
     await createDir(newPath)
     const result = await getDirectories()
-    directories.value = [{ id: 0, name: '根目录', path: '/' }, ...flattenDirectories(result.directories)]
+    directories.value = flattenDirectories(result.directories)
     emit('update:modelValue', newPath)
     newDirectoryName.value = ''
     showToast('目录创建成功', 'success')

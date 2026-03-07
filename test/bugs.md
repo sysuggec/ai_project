@@ -203,6 +203,39 @@ if ($uploadTime instanceof \DateTimeInterface) {
 
 ---
 
+## 9. 根目录重复显示
+
+### 问题描述
+目录列表中同时显示 "根目录" 和 "root" 两个条目，实际上是同一个根目录。
+
+### 原因分析
+1. 后端创建根目录时使用名称 "root"
+2. 前端 `DirectoryTree.vue` 中硬编码了一个 "根目录" 条目（`path='/'`）
+3. 同时 API 返回的目录列表中也包含了名为 "root" 的根目录
+
+### 解决方案
+1. **后端**: 将根目录名称从 "root" 改为 "根目录"
+2. **前端**: 移除硬编码的 "根目录" 条目，只从 API 返回数据渲染
+3. **数据**: 更新数据库中已有记录的 name 字段
+
+```php
+// UploadService.php
+return DirectoryModel::create([
+    'name' => '根目录',  // 原为 'root'
+    'path' => '/',
+    'parent_id' => null,
+]);
+```
+
+```vue
+<!-- DirectoryTree.vue - 移除硬编码根目录 -->
+<template v-for="dir in directories" :key="dir.id">
+  <TreeItem :item="dir" :selected="selected" :level="0" />
+</template>
+```
+
+---
+
 ## 总结
 
 | 序号 | Bug 类型 | 根本原因 | 修复耗时 |
@@ -215,6 +248,9 @@ if ($uploadTime instanceof \DateTimeInterface) {
 | 6 | 框架差异 | Eloquent 独立模式限制 | 中 |
 | 7 | 边界条件 | 根目录特殊情况未处理 | 中 |
 | 8 | 类型安全 | 日期类型处理不一致 | 低 |
+| 9 | 数据一致 | 前后端根目录命名不统一 | 低 |
+| 10 | 构建配置 | vite emptyOutDir 删除 index.php | 低 |
+| 11 | 数据修复 | 目录 parent_id 为空导致嵌套错误 | 低 |
 
 ### 经验教训
 
