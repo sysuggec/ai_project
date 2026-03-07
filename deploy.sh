@@ -36,6 +36,7 @@ show_help() {
     stop        停止服务
     restart     重启服务
     rebuild     重新构建并启动
+    reset       重置数据并重新部署（清理数据库和上传文件）
     logs        查看日志
     status      查看服务状态
     clean       清理容器和镜像
@@ -51,6 +52,7 @@ show_help() {
     $0 start                          # 使用默认配置启动
     $0 start -p 9000                  # 使用端口 9000 启动
     $0 start -p 9000 -u /data/upload  # 自定义端口和上传目录
+    $0 reset                          # 重置所有数据并重新部署
     $0 stop                           # 停止服务
     $0 rebuild                        # 重新构建并启动
     $0 logs                           # 查看日志
@@ -209,6 +211,46 @@ clean() {
     fi
 }
 
+# 重置数据
+reset_data() {
+    local upload_path=$1
+    local db_path=$2
+
+    warn "⚠️  这将删除所有数据（数据库和上传文件），是否继续? [y/N]"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        info "已取消"
+        exit 0
+    fi
+
+    info "停止服务..."
+    local compose_cmd=$(get_compose_cmd)
+    $compose_cmd down 2>/dev/null || true
+
+    info "清理数据目录..."
+
+    # 清理上传目录
+    if [[ "$upload_path" != /* ]]; then
+        upload_path="$(pwd)/$upload_path"
+    fi
+    if [[ -d "$upload_path" ]]; then
+        rm -rf "$upload_path"/*
+        success "已清理上传目录: $upload_path"
+    fi
+
+    # 清理数据库目录
+    if [[ "$db_path" != /* ]]; then
+        db_path="$(pwd)/$db_path"
+    fi
+    if [[ -d "$db_path" ]]; then
+        rm -rf "$db_path"/*
+        success "已清理数据库目录: $db_path"
+    fi
+
+    info "重新部署..."
+    start_service "$3" "$1" "$2" "$4"
+}
+
 # 解析参数
 parse_args() {
     COMMAND=""
@@ -219,7 +261,7 @@ parse_args() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            start|stop|restart|rebuild|logs|status|clean|help)
+            start|stop|restart|rebuild|reset|logs|status|clean|help)
                 COMMAND=$1
                 shift
                 ;;
@@ -272,6 +314,9 @@ main() {
             ;;
         rebuild)
             rebuild_service
+            ;;
+        reset)
+            reset_data "$UPLOAD_PATH" "$DB_PATH" "$PORT" "$ENV_FILE"
             ;;
         logs)
             view_logs
