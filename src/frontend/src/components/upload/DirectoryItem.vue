@@ -1,7 +1,7 @@
 <template>
-  <div class="tree-item-wrapper">
+  <div class="directory-item-wrapper">
     <div
-      :class="['tree-item', { active: selected === item.path }]"
+      :class="['directory-item', { active: selected === item.path }]"
       :style="{ paddingLeft: (level * 16 + 12) + 'px' }"
     >
       <span
@@ -13,11 +13,10 @@
       </span>
       <span v-else class="toggle-placeholder"></span>
       <span class="folder-icon" @click="$emit('select', item.path)">📁</span>
-      <span class="name" @click="$emit('select', item.path)">{{ item.name }}</span>
-      <span v-if="item.path === '/'" class="root-tag">根</span>
+      <span class="name" @click="$emit('select', item.path)">{{ item.name || '根目录' }}</span>
     </div>
     <template v-if="hasChildren && isExpanded">
-      <TreeItem
+      <DirectoryItem
         v-for="child in item.children"
         :key="child.id"
         :item="child"
@@ -59,7 +58,7 @@ const toggleExpand = () => {
 </script>
 
 <style scoped>
-.tree-item {
+.directory-item {
   display: flex;
   align-items: center;
   padding: 8px 12px;
@@ -68,11 +67,11 @@ const toggleExpand = () => {
   transition: all 0.2s;
 }
 
-.tree-item:hover {
-  background: #f0f0f0;
+.directory-item:hover {
+  background: #f5f5f5;
 }
 
-.tree-item.active {
+.directory-item.active {
   background: #e6f7ff;
   color: #1890ff;
 }
@@ -86,10 +85,6 @@ const toggleExpand = () => {
   user-select: none;
 }
 
-.toggle-icon.expanded {
-  transform: rotate(0deg);
-}
-
 .toggle-placeholder {
   width: 16px;
 }
@@ -100,14 +95,5 @@ const toggleExpand = () => {
 
 .name {
   font-size: 14px;
-}
-
-.root-tag {
-  margin-left: 8px;
-  padding: 2px 6px;
-  background: #1890ff;
-  color: white;
-  font-size: 10px;
-  border-radius: 4px;
 }
 </style>

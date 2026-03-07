@@ -6,15 +6,14 @@
       <span class="path-value">{{ modelValue }}</span>
     </div>
     <div class="directory-list">
-      <div
+      <DirectoryItem
         v-for="dir in directories"
-        :key="dir.path"
-        :class="['directory-item', { active: modelValue === dir.path }]"
-        @click="$emit('update:modelValue', dir.path)"
-      >
-        <span class="dir-icon">📁</span>
-        <span class="dir-name">{{ dir.name || '/' }}</span>
-      </div>
+        :key="dir.id"
+        :item="dir"
+        :selected="modelValue"
+        :level="0"
+        @select="$emit('update:modelValue', $event)"
+      />
     </div>
     <div class="new-directory">
       <input
@@ -31,6 +30,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { getDirectories, createDirectory as createDir } from '../../api/resource'
+import DirectoryItem from './DirectoryItem.vue'
 
 const props = defineProps({
   modelValue: {
@@ -46,23 +46,16 @@ const newDirectoryName = ref('')
 const showToast = inject('showToast')
 
 onMounted(async () => {
+  await loadDirectories()
+})
+
+const loadDirectories = async () => {
   try {
     const result = await getDirectories()
-    directories.value = flattenDirectories(result.directories)
+    directories.value = result.directories || []
   } catch (error) {
     console.error('加载目录失败', error)
   }
-})
-
-const flattenDirectories = (dirs, level = 0) => {
-  const result = []
-  for (const dir of dirs) {
-    result.push({ ...dir, level })
-    if (dir.children && dir.children.length > 0) {
-      result.push(...flattenDirectories(dir.children, level + 1))
-    }
-  }
-  return result
 }
 
 const createDirectory = async () => {
@@ -77,8 +70,7 @@ const createDirectory = async () => {
 
   try {
     await createDir(newPath)
-    const result = await getDirectories()
-    directories.value = flattenDirectories(result.directories)
+    await loadDirectories()
     emit('update:modelValue', newPath)
     newDirectoryName.value = ''
     showToast('目录创建成功', 'success')

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+src/frontend/dist/
+src/backend/public/assets/
+src/backend/public/index.html
+
+# Database
+*.sqlite
+*.sqlite3
+src/backend/storage/*.sqlite
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test reports
+playwright/reports/
+
+# Temporary Vite deps
+src/frontend/node_modules/.vite/deps_temp*/
+
+# Optional platform-specific packages
+src/frontend/node_modules/@rollup/rollup-*
