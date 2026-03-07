@@ -37,3 +37,7 @@ src/frontend/node_modules/.vite/deps_temp*/
 
 # Optional platform-specific packages
 src/frontend/node_modules/@rollup/rollup-*
+
+# Docker local config
+.env
+data/
