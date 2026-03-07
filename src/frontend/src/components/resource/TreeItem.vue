@@ -2,21 +2,24 @@
   <div class="tree-item-wrapper">
     <div
       :class="['tree-item', { active: selected === item.path }]"
-      :style="{ paddingLeft: (level * 16 + 12) + 'px' }"
+      :style="{ paddingLeft: (level * 20 + 8) + 'px' }"
+      @click="handleClick"
     >
       <span
         v-if="hasChildren"
-        :class="['toggle-icon', { expanded: isExpanded }]"
+        class="toggle-icon"
         @click.stop="toggleExpand"
       >
-        {{ isExpanded ? '▼' : '▶' }}
+        <svg :class="['arrow', { collapsed: !isExpanded }]" viewBox="0 0 24 24" width="16" height="16">
+          <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+        </svg>
       </span>
       <span v-else class="toggle-placeholder"></span>
-      <span class="folder-icon" @click="$emit('select', item.path)">📁</span>
-      <span class="name" @click="$emit('select', item.path)">{{ item.name }}</span>
+      <span class="folder-icon">{{ isExpanded && hasChildren ? '📂' : '📁' }}</span>
+      <span class="name">{{ item.name }}</span>
       <span v-if="item.path === '/'" class="root-tag">根</span>
     </div>
-    <template v-if="hasChildren && isExpanded">
+    <div v-show="hasChildren && isExpanded" class="children-container">
       <TreeItem
         v-for="child in item.children"
         :key="child.id"
@@ -25,7 +28,7 @@
         :level="level + 1"
         @select="$emit('select', $event)"
       />
-    </template>
+    </div>
   </div>
 </template>
 
@@ -47,7 +50,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['select'])
+const emit = defineEmits(['select'])
 
 const isExpanded = ref(true)
 
@@ -55,6 +58,15 @@ const hasChildren = computed(() => props.item.children && props.item.children.le
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
+}
+
+const handleClick = () => {
+  // 选中当前目录
+  emit('select', props.item.path)
+  // 如果有子节点，同时切换折叠状态
+  if (hasChildren.value) {
+    toggleExpand()
+  }
 }
 </script>
 
@@ -66,6 +78,7 @@ const toggleExpand = () => {
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  user-select: none;
 }
 
 .tree-item:hover {
@@ -78,28 +91,43 @@ const toggleExpand = () => {
 }
 
 .toggle-icon {
-  width: 16px;
-  font-size: 10px;
-  color: #999;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s;
-  user-select: none;
+  border-radius: 4px;
+  margin-right: 4px;
+  color: #666;
 }
 
-.toggle-icon.expanded {
-  transform: rotate(0deg);
+.toggle-icon:hover {
+  background: #e0e0e0;
+}
+
+.toggle-icon .arrow {
+  transition: transform 0.2s ease;
+}
+
+.toggle-icon .arrow.collapsed {
+  transform: rotate(-90deg);
 }
 
 .toggle-placeholder {
-  width: 16px;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
 }
 
 .folder-icon {
   margin-right: 8px;
+  font-size: 16px;
 }
 
 .name {
   font-size: 14px;
+  flex: 1;
 }
 
 .root-tag {
@@ -109,5 +137,18 @@ const toggleExpand = () => {
   color: white;
   font-size: 10px;
   border-radius: 4px;
+}
+
+.children-container {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

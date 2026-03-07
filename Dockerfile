@@ -33,14 +33,22 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# 复制后端代码
-COPY src/backend/ ./
+# 复制后端代码（排除 public/assets 目录，避免旧前端文件残留）
+COPY src/backend/app ./.app-temp
+COPY src/backend/config ./config
+COPY src/backend/routes ./routes
+COPY src/backend/bin ./bin
+COPY src/backend/storage ./storage
+COPY src/backend/public/index.php ./public/index.php
+COPY src/backend/composer.* ./
+RUN mv .app-temp app
 
 # 安装 PHP 依赖（生产环境，排除开发依赖）
 RUN composer install --no-dev --optimize-autoloader
 
-# 从前端构建阶段复制构建产物到 public 目录
-COPY --from=frontend-builder /app/frontend/dist ./public/
+# 创建 public 目录并复制前端构建产物（Vite 输出到 ../backend/public）
+RUN mkdir -p public
+COPY --from=frontend-builder /app/backend/public ./public/
 
 # 创建必要的目录
 RUN mkdir -p /data/upload \
