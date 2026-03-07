@@ -57,6 +57,7 @@ class UploadService
         try {
             $directory = $this->getOrCreateDirectory($directoryPath);
 
+            // 检查完全相同的文件（hash + directory + name 都相同），直接返回，不记录历史
             $existingFile = FileModel::where('hash', $hash)
                 ->where('directory_id', $directory->id)
                 ->where('name', $originalName)
@@ -66,6 +67,9 @@ class UploadService
                 $connection->commit();
                 return $existingFile;
             }
+
+            // 检查同路径下是否存在同名文件，自动重命名
+            $finalName = $this->resolveFileNameConflict($directory->id, $originalName);
 
             $storagePath = $this->getStoragePath($hash);
 
@@ -85,7 +89,7 @@ class UploadService
             }
 
             $file = FileModel::create([
-                'name' => $originalName,
+                'name' => $finalName,
                 'hash' => $hash,
                 'size' => $size,
                 'mime_type' => $mimeType,
@@ -102,6 +106,35 @@ class UploadService
             $connection->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * 解决文件名冲突，如存在同名文件则自动重命名
+     * 格式：name_(timestamp).ext
+     *
+     * @param int $directoryId 目录 ID
+     * @param string $originalName 原始文件名
+     * @return string 最终文件名
+     */
+    private function resolveFileNameConflict(int $directoryId, string $originalName): string
+    {
+        // 检查同目录下是否存在同名文件
+        $exists = FileModel::where('directory_id', $directoryId)
+            ->where('name', $originalName)
+            ->exists();
+
+        if (!$exists) {
+            return $originalName;
+        }
+
+        // 解析文件名和扩展名
+        $pathInfo = pathinfo($originalName);
+        $name = $pathInfo['filename'];
+        $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+
+        // 生成新文件名：name_(timestamp).ext
+        $timestamp = date('YmdHis');
+        return $name . '_(' . $timestamp . ')' . $extension;
     }
 
     public function getOrCreateDirectory(string $path): DirectoryModel
