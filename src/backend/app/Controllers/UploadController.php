@@ -42,12 +42,18 @@ class UploadController
         // 秒传模式：只传哈希，不传文件
         if (!$file && $hash) {
             $fileName = $request->request->get('filename', $hash . '.dat');
+            
+            // 从已存在的文件记录中获取大小和 MIME 类型
+            $existingFile = $this->uploadService->checkHash($hash);
+            $fileSize = $existingFile['file']?->size ?? 0;
+            $mimeType = $existingFile['file']?->mime_type ?? 'application/octet-stream';
+            
             try {
                 $uploadedFile = $this->uploadService->uploadFile(
                     $fileName,
                     $hash,
-                    0,
-                    'application/octet-stream',
+                    $fileSize,
+                    $mimeType,
                     $directory,
                     null // 无实际文件
                 );

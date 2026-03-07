@@ -1,18 +1,21 @@
 <template>
   <div
     class="upload-area"
+    :class="{ dragging: isDragging }"
     @dragover.prevent="isDragging = true"
     @dragleave="isDragging = false"
     @drop.prevent="handleDrop"
-    @click="triggerFileInput"
   >
     <div class="upload-content">
       <div class="upload-icon">📁</div>
-      <p class="upload-text">拖拽文件到此处上传</p>
-      <p class="upload-hint">或点击选择文件</p>
+      <p class="upload-text">拖拽文件或文件夹到此处上传</p>
+      <p class="upload-hint">或使用下方按钮选择</p>
       <div class="upload-buttons">
         <button class="upload-btn" @click.stop="selectFiles">选择文件</button>
-        <button class="upload-btn" @click.stop="selectFolder">选择文件夹</button>
+        <button class="upload-btn folder-btn" @click.stop="selectFolder">
+          选择文件夹
+          <span class="folder-hint">（进入文件夹后点击"选择"）</span>
+        </button>
       </div>
     </div>
 
@@ -43,10 +46,6 @@ const emit = defineEmits(['files-selected', 'folder-selected'])
 const isDragging = ref(false)
 const fileInput = ref(null)
 const folderInput = ref(null)
-
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
 
 const selectFiles = () => {
   fileInput.value?.click()
@@ -202,5 +201,17 @@ const handleFolderChange = (e) => {
 
 .upload-btn:hover {
   background: #40a9ff;
+}
+
+.folder-btn {
+  position: relative;
+}
+
+.folder-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.85;
+  margin-top: 4px;
 }
 </style>

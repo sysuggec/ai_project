@@ -236,6 +236,72 @@ return DirectoryModel::create([
 
 ---
 
+## 10. 文件夹选择交互不直观
+
+### 问题描述
+点击"选择文件夹"按钮后，打开的系统对话框无法直接选择文件夹。用户需要先进入文件夹内部，再点击"选择"按钮，这与其他软件的文件夹选择交互不同，容易让用户困惑。
+
+### 原因分析
+浏览器原生 `<input type="file" webkitdirectory>` 属性的行为限制：
+- 打开的是**文件选择对话框**（而非专门的文件夹选择器）
+- 用户需要**先导航进入目标文件夹**
+- 然后点击对话框底部的"选择文件夹"或"打开"按钮
+- 浏览器会读取该文件夹内所有文件
+
+这是浏览器安全限制，无法通过代码改变其行为。
+
+### 解决方案
+1. **添加操作提示**: 在"选择文件夹"按钮上显示提示文字说明操作方式
+2. **改进文案**: 明确说明拖拽支持文件和文件夹
+3. **推荐替代方案**: 引导用户使用拖拽文件夹的方式（更直观）
+
+```vue
+<button class="upload-btn folder-btn" @click.stop="selectFolder">
+  选择文件夹
+  <span class="folder-hint">（进入文件夹后点击"选择"）</span>
+</button>
+```
+
+---
+
+## 11. 秒传后文件大小显示为 0B
+
+### 问题描述
+秒传成功后，对应目录下的文件大小显示为 0B，但实际文件大小不为零。
+
+### 原因分析
+`UploadController.php` 中秒传模式下，调用 `uploadFile()` 方法时：
+- 文件大小固定传入 `0`
+- MIME 类型固定传入 `application/octet-stream`
+
+没有从已存在的文件记录中获取正确的属性值。
+
+### 解决方案
+秒传时从已存在的文件记录中获取正确的大小和 MIME 类型：
+
+```php
+// UploadController.php
+if (!$file && $hash) {
+    $fileName = $request->request->get('filename', $hash . '.dat');
+    
+    // 从已存在的文件记录中获取大小和 MIME 类型
+    $existingFile = $this->uploadService->checkHash($hash);
+    $fileSize = $existingFile['file']?->size ?? 0;
+    $mimeType = $existingFile['file']?->mime_type ?? 'application/octet-stream';
+    
+    $uploadedFile = $this->uploadService->uploadFile(
+        $fileName,
+        $hash,
+        $fileSize,      // 使用正确的文件大小
+        $mimeType,      // 使用正确的 MIME 类型
+        $directory,
+        null
+    );
+}
+```
+
+---
+
 ## 总结
 
 | 序号 | Bug 类型 | 根本原因 | 修复耗时 |
@@ -251,6 +317,8 @@ return DirectoryModel::create([
 | 9 | 数据一致 | 前后端根目录命名不统一 | 低 |
 | 10 | 构建配置 | vite emptyOutDir 删除 index.php | 低 |
 | 11 | 数据修复 | 目录 parent_id 为空导致嵌套错误 | 低 |
+| 12 | 交互体验 | 浏览器文件夹选择器行为限制 | 低 |
+| 13 | 业务逻辑 | 秒传未获取已存在文件的属性 | 低 |
 
 ### 经验教训
 
@@ -259,3 +327,5 @@ return DirectoryModel::create([
 3. **独立 Eloquent**: 避免 Laravel Facades，使用 Capsule 原生方法
 4. **边界条件**: 路径处理要考虑根目录、空字符串等特殊输入
 5. **类型安全**: PHP 弱类型语言，对可能混合类型的字段要添加类型检查
+6. **浏览器 API 限制**: `webkitdirectory` 等浏览器原生 API 行为受安全限制，无法完全自定义，应通过 UI 提示引导用户正确操作
+7. **秒传数据完整性**: 秒传时应从已存在文件记录获取 size、mime_type 等属性，而非使用默认值

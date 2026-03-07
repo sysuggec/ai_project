@@ -23,14 +23,38 @@
       </div>
     </div>
     <div v-else class="empty">暂无上传记录</div>
+    
+    <!-- 分页 -->
+    <div class="pagination" v-if="totalPages > 1">
+      <button 
+        class="page-btn" 
+        :disabled="currentPage === 1" 
+        @click="goToPage(currentPage - 1)"
+      >
+        上一页
+      </button>
+      <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
+      <button 
+        class="page-btn" 
+        :disabled="currentPage >= totalPages" 
+        @click="goToPage(currentPage + 1)"
+      >
+        下一页
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, defineExpose } from 'vue'
+import { ref, computed, onMounted, defineExpose } from 'vue'
 import { getUploadHistory } from '../../api/upload'
 
 const histories = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = 10
+
+const totalPages = computed(() => Math.ceil(total.value / pageSize))
 
 onMounted(async () => {
   await loadHistory()
@@ -38,16 +62,26 @@ onMounted(async () => {
 
 const loadHistory = async () => {
   try {
-    const result = await getUploadHistory()
+    const offset = (currentPage.value - 1) * pageSize
+    const result = await getUploadHistory(pageSize, offset)
     histories.value = result.histories
+    total.value = result.total
   } catch (error) {
     console.error('加载历史失败', error)
   }
 }
 
+const goToPage = (page) => {
+  currentPage.value = page
+  loadHistory()
+}
+
 // 暴露刷新方法供父组件调用
 defineExpose({
-  refresh: loadHistory
+  refresh: () => {
+    currentPage.value = 1
+    loadHistory()
+  }
 })
 
 const formatSize = (bytes) => {
@@ -140,5 +174,40 @@ const formatSize = (bytes) => {
   text-align: center;
   color: #999;
   padding: 24px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.page-btn:disabled {
+  color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #666;
 }
 </style>
