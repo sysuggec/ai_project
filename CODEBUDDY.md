@@ -28,6 +28,12 @@ cd src/frontend && npm run build
 cd src/backend && composer install
 cd src/frontend && npm install
 
+# Docker 一键部署
+./deploy.sh start                    # 默认配置启动
+./deploy.sh start -p 9000            # 自定义端口
+./deploy.sh stop                     # 停止服务
+./deploy.sh logs                     # 查看日志
+
 # E2E 测试
 cd playwright && npm install           # 首次安装测试依赖
 cd playwright && npm test              # 运行所有测试
