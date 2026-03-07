@@ -56,11 +56,13 @@ const selectFolder = () => {
   folderInput.value?.click()
 }
 
-const handleDrop = (e) => {
+const handleDrop = async (e) => {
   isDragging.value = false
   const items = e.dataTransfer.items
   const files = []
   const paths = []
+
+  const promises = []
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
@@ -68,7 +70,8 @@ const handleDrop = (e) => {
       const entry = item.webkitGetAsEntry?.()
       if (entry) {
         if (entry.isDirectory) {
-          traverseDirectory(entry, files, paths)
+          // 收集异步遍历的 Promise
+          promises.push(traverseDirectory(entry, files, paths))
         } else {
           const file = item.getAsFile()
           files.push(file)
@@ -82,6 +85,9 @@ const handleDrop = (e) => {
     }
   }
 
+  // 等待所有目录遍历完成
+  await Promise.all(promises)
+
   if (files.length > 0) {
     emit('folder-selected', files, paths)
   }
@@ -89,9 +95,23 @@ const handleDrop = (e) => {
 
 const traverseDirectory = async (dirEntry, files, paths, basePath = '') => {
   const reader = dirEntry.createReader()
-  const entries = await new Promise((resolve) => {
-    reader.readEntries(resolve)
-  })
+  
+  // readEntries 可能需要多次调用才能读取完所有条目
+  const readAllEntries = async () => {
+    const allEntries = []
+    let entries = []
+    
+    do {
+      entries = await new Promise((resolve) => {
+        reader.readEntries(resolve)
+      })
+      allEntries.push(...entries)
+    } while (entries.length > 0)
+    
+    return allEntries
+  }
+
+  const entries = await readAllEntries()
 
   for (const entry of entries) {
     if (entry.isFile) {

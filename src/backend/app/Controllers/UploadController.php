@@ -36,16 +36,56 @@ class UploadController
     public function uploadFile(Request $request): \Symfony\Component\HttpFoundation\Response
     {
         $file = $request->files->get('file');
+        $hash = $request->request->get('hash');
+        $directory = $request->request->get('directory', '/');
+
+        // 秒传模式：只传哈希，不传文件
+        if (!$file && $hash) {
+            $fileName = $request->request->get('filename', $hash . '.dat');
+            try {
+                $uploadedFile = $this->uploadService->uploadFile(
+                    $fileName,
+                    $hash,
+                    0,
+                    'application/octet-stream',
+                    $directory,
+                    null // 无实际文件
+                );
+
+                return Response::success([
+                    'file' => [
+                        'id' => $uploadedFile->id,
+                        'name' => $uploadedFile->name,
+                        'size' => $uploadedFile->size,
+                        'hash' => $uploadedFile->hash,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                return Response::error($e->getMessage(), 500);
+            }
+        }
 
         if (!$file) {
             return Response::error('No file uploaded');
         }
 
+        // 检查文件是否有效上传
+        if (!$file->isValid()) {
+            return Response::error('File upload failed: ' . $file->getErrorMessage());
+        }
+
         $originalName = $file->getClientOriginalName();
         $size = $file->getSize();
-        $mimeType = $file->getMimeType();
-        $hash = $request->request->get('hash');
-        $directory = $request->request->get('directory', '/');
+        
+        // 安全获取 MIME 类型
+        $mimeType = $file->getClientMimeType();
+        $realPath = $file->getRealPath();
+        if ($realPath && file_exists($realPath)) {
+            $guessedType = $file->getMimeType();
+            if ($guessedType) {
+                $mimeType = $guessedType;
+            }
+        }
 
         if (empty($hash)) {
             $hash = hash_file('sha256', $file->getPathname());
@@ -58,7 +98,7 @@ class UploadController
                 $size,
                 $mimeType,
                 $directory,
-                $file->getPathname()
+                $file
             );
 
             return Response::success([
@@ -70,7 +110,7 @@ class UploadController
                 ],
             ]);
         } catch (\Exception $e) {
-            return Response::error($e->getMessage());
+            return Response::error($e->getMessage(), 500);
         }
     }
 
@@ -84,16 +124,37 @@ class UploadController
             $relativePath = $request->request->get("paths[$key]", '');
             $targetDirectory = $directory . '/' . dirname($relativePath);
 
+            // 检查文件是否有效上传
+            if (!$file->isValid()) {
+                $results[] = [
+                    'name' => $file->getClientOriginalName(),
+                    'path' => $targetDirectory,
+                    'status' => 'error',
+                    'error' => 'File upload failed: ' . $file->getErrorMessage(),
+                ];
+                continue;
+            }
+
             $hash = hash_file('sha256', $file->getPathname());
+            
+            // 安全获取 MIME 类型
+            $mimeType = $file->getClientMimeType();
+            $realPath = $file->getRealPath();
+            if ($realPath && file_exists($realPath)) {
+                $guessedType = $file->getMimeType();
+                if ($guessedType) {
+                    $mimeType = $guessedType;
+                }
+            }
 
             try {
                 $uploadedFile = $this->uploadService->uploadFile(
                     $file->getClientOriginalName(),
                     $hash,
                     $file->getSize(),
-                    $file->getMimeType(),
+                    $mimeType,
                     $targetDirectory,
-                    $file->getPathname()
+                    $file
                 );
 
                 $results[] = [

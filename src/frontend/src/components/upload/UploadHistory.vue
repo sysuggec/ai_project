@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, defineExpose } from 'vue'
 import { getUploadHistory } from '../../api/upload'
 
 const histories = ref([])
@@ -44,6 +44,11 @@ const loadHistory = async () => {
     console.error('加载历史失败', error)
   }
 }
+
+// 暴露刷新方法供父组件调用
+defineExpose({
+  refresh: loadHistory
+})
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B'

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { checkHash, uploadFile, uploadFolder } from '../api/upload'
+import { checkHash, uploadFile, uploadFolder, instantUpload } from '../api/upload'
 import { calculateHash } from '../utils/hash'
 
 export function useUpload() {
@@ -49,6 +49,27 @@ export function useUpload() {
     uploadQueue.value = []
   }
 
+  /**
+   * 计算文件的目标目录
+   * 如果是文件夹上传（有 relativePath），则拼接相对路径的目录部分
+   */
+  const getTargetDirectory = (item) => {
+    if (item.relativePath) {
+      // 获取相对路径的目录部分
+      const dirPath = item.relativePath.includes('/') 
+        ? item.relativePath.substring(0, item.relativePath.lastIndexOf('/'))
+        : ''
+      
+      // 拼接目标目录和相对路径
+      if (dirPath) {
+        return item.directory === '/' 
+          ? '/' + dirPath 
+          : item.directory + '/' + dirPath
+      }
+    }
+    return item.directory
+  }
+
   const processItem = async (item) => {
     try {
       item.status = 'hashing'
@@ -56,16 +77,18 @@ export function useUpload() {
       item.hash = hash
 
       const checkResult = await checkHash(hash)
+      const targetDirectory = getTargetDirectory(item)
       
       if (checkResult.exists) {
-        const result = await uploadFile(item.file, hash, item.directory)
+        // 秒传：只发送哈希和文件名，不发送实际文件
+        await instantUpload(item.file.name, hash, targetDirectory)
         item.status = 'instant'
         item.progress = 100
         return
       }
 
       item.status = 'uploading'
-      await uploadFile(item.file, hash, item.directory, (progress) => {
+      await uploadFile(item.file, hash, targetDirectory, (progress) => {
         item.progress = progress
       })
       

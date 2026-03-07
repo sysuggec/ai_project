@@ -7,6 +7,7 @@ use App\Models\FileModel;
 use App\Models\DirectoryModel;
 use App\Models\UploadHistoryModel;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class UploadService
 {
@@ -30,13 +31,25 @@ class UploadService
         ];
     }
 
+    /**
+     * 上传文件
+     *
+     * @param string $originalName 原始文件名
+     * @param string $hash 文件哈希值
+     * @param int $size 文件大小
+     * @param string $mimeType MIME 类型
+     * @param string $directoryPath 目标目录路径
+     * @param UploadedFile|null $uploadedFile 上传的文件对象，null 表示秒传
+     * @return FileModel 文件模型
+     * @throws \RuntimeException 文件移动失败时抛出
+     */
     public function uploadFile(
         string $originalName,
         string $hash,
         int $size,
         string $mimeType,
         string $directoryPath,
-        ?string $tempPath = null
+        ?UploadedFile $uploadedFile = null
     ): FileModel {
         $connection = Capsule::connection();
         $connection->beginTransaction();
@@ -56,12 +69,19 @@ class UploadService
 
             $storagePath = $this->getStoragePath($hash);
 
-            if ($tempPath !== null && !file_exists($storagePath)) {
+            // 如果有上传文件且存储路径不存在，则移动文件
+            if ($uploadedFile !== null && !file_exists($storagePath)) {
                 $dir = dirname($storagePath);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
                 }
-                move_uploaded_file($tempPath, $storagePath);
+
+                // 使用 Symfony UploadedFile 的 move 方法，更可靠
+                $uploadedFile->move($dir, $hash);
+
+                if (!file_exists($storagePath)) {
+                    throw new \RuntimeException('Failed to move uploaded file');
+                }
             }
 
             $file = FileModel::create([
@@ -74,7 +94,7 @@ class UploadService
                 'upload_time' => date('Y-m-d H:i:s'),
             ]);
 
-            $this->recordHistory($file, $directoryPath, $tempPath === null);
+            $this->recordHistory($file, $directoryPath, $uploadedFile === null);
 
             $connection->commit();
             return $file;
@@ -86,17 +106,20 @@ class UploadService
 
     public function getOrCreateDirectory(string $path): DirectoryModel
     {
+        // 规范化路径
+        $path = $this->normalizePath($path);
+
         // 处理根目录
         if ($path === '/' || $path === '') {
             $directory = DirectoryModel::where('path', '/')->first();
             if ($directory) {
                 return $directory;
             }
-        return DirectoryModel::create([
-            'name' => '根目录',
-            'path' => '/',
-            'parent_id' => null,
-        ]);
+            return DirectoryModel::create([
+                'name' => '根目录',
+                'path' => '/',
+                'parent_id' => null,
+            ]);
         }
 
         $directory = DirectoryModel::where('path', $path)->first();
@@ -125,6 +148,30 @@ class UploadService
         }
 
         return $parent;
+    }
+
+    /**
+     * 规范化路径，移除多余的斜杠和 . 
+     */
+    private function normalizePath(string $path): string
+    {
+        // 移除多余的斜杠
+        $path = preg_replace('#/+#', '/', $path);
+        
+        // 处理 ./ 和 ./
+        $parts = explode('/', $path);
+        $normalized = [];
+        
+        foreach ($parts as $part) {
+            if ($part === '.' || $part === '') {
+                continue;
+            }
+            $normalized[] = $part;
+        }
+        
+        $result = '/' . implode('/', $normalized);
+        
+        return $result === '' ? '/' : $result;
     }
 
     private function getStoragePath(string $hash): string

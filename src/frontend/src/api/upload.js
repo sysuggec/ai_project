@@ -12,18 +12,45 @@ export const checkHash = async (hash) => {
 
 export const uploadFile = async (file, hash, directory, onProgress) => {
   const formData = new FormData()
-  formData.append('file', file)
+  
+  // 只有在实际有文件时才添加文件
+  if (file) {
+    formData.append('file', file)
+  }
   formData.append('hash', hash)
   formData.append('directory', directory)
+
+  const config = {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }
+  
+  // 只有在实际文件上传时才跟踪进度
+  if (file && onProgress) {
+    config.onUploadProgress = (e) => {
+      if (e.total) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+  }
+
+  const response = await api.post('/upload/file', formData, config)
+  return response.data
+}
+
+/**
+ * 秒传：只发送哈希和文件名，不发送实际文件
+ */
+export const instantUpload = async (fileName, hash, directory) => {
+  const formData = new FormData()
+  formData.append('hash', hash)
+  formData.append('directory', directory)
+  formData.append('filename', fileName)
 
   const response = await api.post('/upload/file', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
-    },
-    onUploadProgress: (e) => {
-      if (onProgress && e.total) {
-        onProgress(Math.round((e.loaded / e.total) * 100))
-      }
     },
   })
   return response.data

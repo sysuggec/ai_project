@@ -27,7 +27,7 @@
       </button>
     </div>
 
-    <UploadHistory v-if="showHistory" class="history-section" />
+    <UploadHistory v-if="showHistory" ref="uploadHistoryRef" class="history-section" />
   </div>
 </template>
 
@@ -41,6 +41,7 @@ import { useUpload } from '../composables/useUpload'
 import { inject } from 'vue'
 
 const targetDirectory = ref('/')
+const uploadHistoryRef = ref(null)
 const { uploadQueue, isUploading, addFiles, addFolder, startUpload: doUpload, removeItem, clearQueue } = useUpload()
 const showToast = inject('showToast')
 const showHistory = ref(true)
@@ -61,6 +62,8 @@ const startUpload = async () => {
   try {
     await doUpload()
     showToast('上传完成', 'success')
+    // 上传完成后刷新历史记录
+    uploadHistoryRef.value?.refresh()
   } catch (error) {
     showToast(error.message, 'error')
   }
