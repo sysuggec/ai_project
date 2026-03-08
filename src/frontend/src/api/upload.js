@@ -17,7 +17,10 @@ export const uploadFile = async (file, hash, directory, onProgress) => {
   if (file) {
     formData.append('file', file)
   }
-  formData.append('hash', hash)
+  // 只有 hash 有效时才添加（后端会在 hash 为空时自动计算）
+  if (hash) {
+    formData.append('hash', hash)
+  }
   formData.append('directory', directory)
 
   const config = {

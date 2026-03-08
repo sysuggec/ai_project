@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { checkHash, uploadFile, uploadFolder, instantUpload } from '../api/upload'
-import { calculateHash } from '../utils/hash'
+import { calculateHash, supportsSecureHash } from '../utils/hash'
 
 export function useUpload() {
   const uploadQueue = ref([])
@@ -72,21 +72,30 @@ export function useUpload() {
 
   const processItem = async (item) => {
     try {
-      item.status = 'hashing'
-      const hash = await calculateHash(item.file)
-      item.hash = hash
-
-      const checkResult = await checkHash(hash)
       const targetDirectory = getTargetDirectory(item)
       
-      if (checkResult.exists) {
-        // 秒传：只发送哈希和文件名，不发送实际文件
-        await instantUpload(item.file.name, hash, targetDirectory)
-        item.status = 'instant'
-        item.progress = 100
-        return
+      // 尝试计算哈希（用于秒传）
+      let hash = null
+      if (supportsSecureHash) {
+        item.status = 'hashing'
+        const result = await calculateHash(item.file)
+        hash = result.hash
+        item.hash = hash
+      }
+      
+      // 如果有哈希值，尝试秒传
+      if (hash) {
+        const checkResult = await checkHash(hash)
+        if (checkResult.exists) {
+          // 秒传：只发送哈希和文件名，不发送实际文件
+          await instantUpload(item.file.name, hash, targetDirectory)
+          item.status = 'instant'
+          item.progress = 100
+          return
+        }
       }
 
+      // 正常上传
       item.status = 'uploading'
       await uploadFile(item.file, hash, targetDirectory, (progress) => {
         item.progress = progress
