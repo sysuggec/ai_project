@@ -23,6 +23,10 @@ export const createDirectory = async (path) => {
   return response.data
 }
 
+export const getDownloadUrl = (id) => {
+  return `${window.location.origin}/api/files/${id}/download`
+}
+
 export const downloadFile = (id) => {
   window.open(`/api/files/${id}/download`, '_blank')
 }

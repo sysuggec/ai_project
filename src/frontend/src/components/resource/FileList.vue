@@ -21,6 +21,9 @@
           <button class="action-btn" @click="$emit('download', file)" title="下载">
             ⬇️
           </button>
+          <button class="action-btn" @click="$emit('copyLink', file)" title="复制下载链接">
+            🔗
+          </button>
           <button class="action-btn" @click="$emit('rename', file)" title="重命名">
             ✏️
           </button>
@@ -45,7 +48,7 @@ defineProps({
   }
 })
 
-defineEmits(['download', 'delete', 'rename'])
+defineEmits(['download', 'copyLink', 'delete', 'rename'])
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B'

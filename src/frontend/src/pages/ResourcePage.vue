@@ -19,6 +19,7 @@
         :files="files"
         :loading="loading"
         @download="handleDownload"
+        @copyLink="handleCopyLink"
         @delete="handleDelete"
         @rename="handleRename"
         class="file-list"
@@ -50,6 +51,7 @@ const {
   deleteFile,
   renameFile,
   downloadFile,
+  copyDownloadLink,
 } = useResource()
 
 const showToast = inject('showToast')
@@ -75,6 +77,15 @@ const refreshFiles = () => {
 
 const handleDownload = (file) => {
   downloadFile(file.id)
+}
+
+const handleCopyLink = async (file) => {
+  const success = await copyDownloadLink(file.id)
+  if (success) {
+    showToast('下载链接已复制', 'success')
+  } else {
+    showToast('复制失败，请重试', 'error')
+  }
 }
 
 const handleDelete = async (file) => {

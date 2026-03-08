@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getFiles, getDirectories, deleteFile as deleteFileApi, renameFile as renameFileApi, downloadFile as downloadFileApi } from '../api/resource'
+import { getFiles, getDirectories, deleteFile as deleteFileApi, renameFile as renameFileApi, downloadFile as downloadFileApi, getDownloadUrl } from '../api/resource'
 
 export function useResource() {
   const files = ref([])
@@ -43,6 +43,31 @@ export function useResource() {
     downloadFileApi(id)
   }
 
+  const copyDownloadLink = async (id) => {
+    const url = getDownloadUrl(id)
+    try {
+      await navigator.clipboard.writeText(url)
+      return true
+    } catch (error) {
+      console.error('复制失败', error)
+      // Fallback: 使用传统方式复制
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-9999px'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        return true
+      } catch (e) {
+        document.body.removeChild(textArea)
+        return false
+      }
+    }
+  }
+
   return {
     files,
     directories,
@@ -54,5 +79,6 @@ export function useResource() {
     deleteFile,
     renameFile,
     downloadFile,
+    copyDownloadLink,
   }
 }
