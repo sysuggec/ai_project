@@ -32,11 +32,11 @@ show_help() {
 用法: $0 [命令] [选项]
 
 命令:
-    start       构建并启动服务
+    start       构建并启动服务（自动检测并构建基础镜像）
     stop        停止服务
     restart     重启服务
     rebuild     重新构建并启动
-    build-base  构建基础镜像（包含系统依赖，加速后续构建）
+    build-base  手动构建基础镜像（包含系统依赖，加速后续构建）
     reset       重置数据并重新部署（清理数据库和上传文件）
     logs        查看日志
     status      查看服务状态
@@ -123,6 +123,14 @@ start_service() {
 
     # 检查环境
     check_docker
+
+    # 自动检测基础镜像
+    if ! docker image inspect resource-system-base:latest &>/dev/null; then
+        warn "基础镜像不存在，正在自动构建..."
+        echo ""
+        build_base
+        echo ""
+    fi
 
     # 创建目录
     create_directories "$upload_path" "$db_path"

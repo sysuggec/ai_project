@@ -21,15 +21,17 @@
 ### Docker 一键部署
 
 ```bash
-# 默认配置启动（端口 8080）
+# 一键启动（自动检测并构建基础镜像）
 ./deploy.sh start
 
 # 自定义端口
 ./deploy.sh start -p 9000
 
+# 代码更新后重建
+./deploy.sh rebuild
+
 # 其他命令
 ./deploy.sh stop       # 停止服务
-./deploy.sh rebuild    # 重新构建并启动
 ./deploy.sh logs       # 查看日志
 ```
 

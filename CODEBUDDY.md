@@ -29,8 +29,10 @@ cd src/backend && composer install
 cd src/frontend && npm install
 
 # Docker 一键部署
-./deploy.sh start                    # 默认配置启动
+./deploy.sh start                    # 一键启动（自动检测基础镜像）
 ./deploy.sh start -p 9000            # 自定义端口
+./deploy.sh rebuild                  # 代码更新后重建（~30秒）
+./deploy.sh build-base               # 手动更新基础镜像
 ./deploy.sh stop                     # 停止服务
 ./deploy.sh logs                     # 查看日志
 

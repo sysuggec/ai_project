@@ -64,7 +64,7 @@ npm run build
 ### 3.1 快速开始
 
 ```bash
-# 默认配置启动（端口 8080）
+# 一键启动（自动检测并构建基础镜像）
 ./deploy.sh start
 
 # 自定义端口和存储目录
@@ -80,6 +80,8 @@ npm run build
 ./deploy.sh clean      # 清理容器和镜像
 ```
 
+> **注意**：`start` 命令会自动检测基础镜像是否存在，不存在则自动构建。首次部署和后续更新都是一条命令搞定。
+
 ### 3.2 构建流程说明
 
 Docker 镜像采用多阶段构建：
@@ -93,7 +95,63 @@ Docker 镜像采用多阶段构建：
 - `index.php` 会被单独复制，确保 PHP 入口文件存在
 - 前端构建产物从 `/app/backend/public` 复制，而非 `/app/frontend/dist`
 
-### 3.3 数据持久化注意事项
+### 3.3 加速构建（基础镜像方案）
+
+为避免每次构建都安装系统依赖，系统采用基础镜像方案。**`start` 命令会自动检测基础镜像**，无需手动构建。
+
+#### 基础镜像内容
+
+基础镜像包含：
+- PHP 8.2-FPM
+- Nginx
+- SQLite
+- Composer
+- 预创建的目录结构
+
+#### 使用基础镜像构建
+
+修改 `docker-compose.yml` 使用缓存版本：
+
+```yaml
+services:
+  resource-system:
+    build:
+      context: .
+      dockerfile: Dockerfile.cached  # 使用缓存版本
+```
+
+然后正常部署：
+
+```bash
+./deploy.sh start -p 8080
+```
+
+#### 构建时间对比
+
+| 场景 | 耗时 |
+|------|------|
+| 首次部署（自动构建基础镜像） | ~5 分钟 |
+| 代码更新重建 | **~30 秒** |
+| 系统依赖更新（手动 build-base） | ~5 分钟 |
+
+#### 手动构建基础镜像
+
+以下情况需要手动执行 `./deploy.sh build-base`：
+- PHP 版本升级
+- Nginx/SQLite 等系统依赖版本更新
+- 需要安装新的 PHP 扩展
+- 基础镜像被意外删除
+
+#### 命令速查
+
+| 命令 | 说明 |
+|------|------|
+| `./deploy.sh start` | 启动服务（自动检测基础镜像） |
+| `./deploy.sh rebuild` | 代码更新后重建（使用基础镜像加速） |
+| `./deploy.sh rebuild --no-cache` | 强制完全重建（不重建基础镜像） |
+| `./deploy.sh build-base` | 手动构建/更新基础镜像 |
+
+### 3.4 数据持久化注意事项
 
 **重要**：Docker 部署使用卷映射持久化数据，这意味着：
 
@@ -106,7 +164,7 @@ Docker 镜像采用多阶段构建：
 ./deploy.sh reset
 ```
 
-### 3.3 环境配置
+### 3.5 环境配置
 
 复制 `.env.docker` 为 `.env` 并根据需要修改：
 
@@ -126,7 +184,7 @@ PHP_POST_MAX_SIZE=0
 PHP_MAX_EXECUTION_TIME=0
 ```
 
-### 3.4 数据卷映射
+### 3.6 数据卷映射
 
 Docker 部署通过卷映射实现数据持久化：
 
@@ -135,7 +193,7 @@ Docker 部署通过卷映射实现数据持久化：
 | `/data/upload` | `./data/upload` | 上传文件存储 |
 | `/var/www/html/storage` | `./data/db` | SQLite 数据库 |
 
-### 3.5 Docker Compose 手动操作
+### 3.7 Docker Compose 手动操作
 
 ```bash
 # 构建并启动

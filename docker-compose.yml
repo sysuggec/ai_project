@@ -2,7 +2,7 @@ services:
   resource-system:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.cached    # 使用缓存版本加速构建
     image: resource-system:latest
     container_name: resource-system
     restart: unless-stopped
