@@ -31,7 +31,7 @@ class FileService
             if ($uploadTime instanceof \DateTimeInterface) {
                 $uploadTime = $uploadTime->format('Y-m-d H:i:s');
             }
-            
+
             return [
                 'id' => $file->id,
                 'name' => $file->name,
@@ -39,6 +39,7 @@ class FileService
                 'mime_type' => $file->mime_type,
                 'directory' => $file->directory?->path ?? '/',
                 'upload_time' => $uploadTime,
+                'storage_path' => $file->storage_path,
             ];
         })->toArray();
     }

@@ -22,6 +22,7 @@
         @copyLink="handleCopyLink"
         @delete="handleDelete"
         @rename="handleRename"
+        @showLocation="handleShowLocation"
         class="file-list"
       />
     </div>
@@ -114,6 +115,20 @@ const handleRename = async (file) => {
     } catch (error) {
       showToast(error.message, 'error')
     }
+  }
+}
+
+const handleShowLocation = async (file) => {
+  if (file.storage_path) {
+    try {
+      await navigator.clipboard.writeText(file.storage_path)
+      showToast(`物理路径已复制: ${file.storage_path}`, 'success')
+    } catch (error) {
+      // Fallback: 显示弹窗
+      alert(`文件物理路径:\n${file.storage_path}`)
+    }
+  } else {
+    showToast('无法获取文件物理路径', 'error')
   }
 }
 </script>
