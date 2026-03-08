@@ -36,6 +36,7 @@ show_help() {
     stop        停止服务
     restart     重启服务
     rebuild     重新构建并启动
+    build-base  构建基础镜像（包含系统依赖，加速后续构建）
     reset       重置数据并重新部署（清理数据库和上传文件）
     logs        查看日志
     status      查看服务状态
@@ -47,14 +48,17 @@ show_help() {
     -u, --upload PATH         上传文件存储路径 (默认: $DEFAULT_UPLOAD_PATH)
     -d, --db PATH             数据库存储路径 (默认: $DEFAULT_DB_PATH)
     -e, --env FILE            环境配置文件 (默认: .env)
+    --no-cache                强制重新构建（不使用缓存）
 
 示例:
     $0 start                          # 使用默认配置启动
     $0 start -p 9000                  # 使用端口 9000 启动
     $0 start -p 9000 -u /data/upload  # 自定义端口和上传目录
+    $0 build-base                     # 构建基础镜像（首次部署或系统依赖更新时执行）
+    $0 rebuild                        # 重新构建并启动
+    $0 rebuild --no-cache             # 强制重新构建（不使用缓存）
     $0 reset                          # 重置所有数据并重新部署
     $0 stop                           # 停止服务
-    $0 rebuild                        # 重新构建并启动
     $0 logs                           # 查看日志
 
 EOF
@@ -143,7 +147,7 @@ EOF
     local compose_cmd=$(get_compose_cmd)
 
     info "构建 Docker 镜像..."
-    $compose_cmd build --no-cache
+    $compose_cmd build $NO_CACHE
 
     info "启动服务..."
     $compose_cmd up -d
@@ -180,9 +184,19 @@ rebuild_service() {
     info "重新构建服务..."
     local compose_cmd=$(get_compose_cmd)
     $compose_cmd down
-    $compose_cmd build --no-cache
+    $compose_cmd build $NO_CACHE
     $compose_cmd up -d
     success "重新构建完成"
+}
+
+# 构建基础镜像
+build_base() {
+    info "构建基础镜像..."
+    docker build -f docker/Dockerfile.base -t resource-system-base:latest .
+    success "基础镜像构建完成: resource-system-base:latest"
+    echo ""
+    echo "提示: 基础镜像包含系统依赖，后续构建将显著加速"
+    echo "当系统依赖（nginx, sqlite 等）需要更新时，重新执行此命令"
 }
 
 # 查看日志
@@ -258,10 +272,11 @@ parse_args() {
     UPLOAD_PATH=$DEFAULT_UPLOAD_PATH
     DB_PATH=$DEFAULT_DB_PATH
     ENV_FILE=".env"
+    NO_CACHE=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            start|stop|restart|rebuild|reset|logs|status|clean|help)
+            start|stop|restart|rebuild|build-base|reset|logs|status|clean|help)
                 COMMAND=$1
                 shift
                 ;;
@@ -280,6 +295,10 @@ parse_args() {
             -e|--env)
                 ENV_FILE="$2"
                 shift 2
+                ;;
+            --no-cache)
+                NO_CACHE="--no-cache"
+                shift
                 ;;
             -h|--help)
                 show_help
@@ -314,6 +333,9 @@ main() {
             ;;
         rebuild)
             rebuild_service
+            ;;
+        build-base)
+            build_base
             ;;
         reset)
             reset_data "$UPLOAD_PATH" "$DB_PATH" "$PORT" "$ENV_FILE"

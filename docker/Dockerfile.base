@@ -1,0 +1,24 @@
+# 资源系统基础镜像
+# 包含所有系统依赖和 PHP 扩展
+# 构建命令: docker build -f docker/Dockerfile.base -t resource-system-base:latest .
+
+FROM php:8.2-fpm-alpine
+
+# 安装系统依赖和 PHP 扩展
+RUN apk add --no-cache \
+    nginx \
+    sqlite \
+    sqlite-dev \
+    curl \
+    && docker-php-ext-install pdo_sqlite
+
+# 安装 Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# 创建必要的目录结构
+RUN mkdir -p /data/upload \
+    && mkdir -p /var/www/html/storage \
+    && chown -R www-data:www-data /data/upload \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 755 /data/upload \
+    && chmod -R 755 /var/www/html/storage
