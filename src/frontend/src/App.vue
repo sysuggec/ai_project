@@ -15,12 +15,26 @@
         >
           资源列表
         </button>
+        <button
+          :class="['tab', { active: activeTab === 'trash' }]"
+          @click="activeTab = 'trash'"
+        >
+          回收站
+        </button>
+        <button
+          :class="['tab', { active: activeTab === 'share' }]"
+          @click="activeTab = 'share'"
+        >
+          分享管理
+        </button>
       </nav>
     </header>
 
     <main class="main">
       <UploadPage v-if="activeTab === 'upload'" />
-      <ResourcePage v-else />
+      <ResourcePage v-else-if="activeTab === 'resource'" />
+      <TrashPage v-else-if="activeTab === 'trash'" />
+      <SharePage v-else-if="activeTab === 'share'" />
     </main>
 
     <Toast ref="toast" />
@@ -31,6 +45,8 @@
 import { ref, provide } from 'vue'
 import UploadPage from './pages/UploadPage.vue'
 import ResourcePage from './pages/ResourcePage.vue'
+import TrashPage from './pages/TrashPage.vue'
+import SharePage from './pages/SharePage.vue'
 import Toast from './components/common/Toast.vue'
 
 const activeTab = ref('upload')

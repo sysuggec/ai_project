@@ -52,8 +52,27 @@ class FileService
             return false;
         }
 
+        // v1.1.0: 改为软删除（移动到回收站）
+        $trashService = new TrashService();
+        
+        try {
+            return $trashService->softDelete($id);
+        } catch (\Throwable $e) {
+            // 如果软删除失败，执行硬删除（向后兼容）
+            return $this->hardDelete($file);
+        }
+    }
+
+    /**
+     * 硬删除文件（物理删除）
+     *
+     * @param FileModel $file 文件模型
+     * @return bool 是否成功
+     */
+    private function hardDelete(FileModel $file): bool
+    {
         $otherFiles = FileModel::where('hash', $file->hash)
-            ->where('id', '!=', $id)
+            ->where('id', '!=', $file->id)
             ->exists();
 
         if (!$otherFiles) {
@@ -117,5 +136,114 @@ class FileService
         $file->save();
 
         return $file;
+    }
+
+    /**
+     * 移动文件到目标目录
+     *
+     * @param int $fileId 要移动的文件ID
+     * @param int $targetDirectoryId 目标目录ID
+     * @return array 移动后的文件信息
+     * @throws \InvalidArgumentException 当参数无效时
+     * @throws \RuntimeException 当移动失败时
+     */
+    public function move(int $fileId, int $targetDirectoryId): array
+    {
+        // 验证文件是否存在
+        $file = FileModel::find($fileId);
+        if (!$file) {
+            throw new \InvalidArgumentException('文件不存在');
+        }
+
+        // 验证目标目录是否存在
+        $targetDirectory = DirectoryModel::find($targetDirectoryId);
+        if (!$targetDirectory) {
+            throw new \InvalidArgumentException('目标目录不存在');
+        }
+
+        // 检查是否移动到相同目录
+        if ($file->directory_id === $targetDirectoryId) {
+            throw new \InvalidArgumentException('文件已在该目录中');
+        }
+
+        // 检查目标目录是否存在同名文件
+        $existingFile = FileModel::where('directory_id', $targetDirectoryId)
+            ->where('name', $file->name)
+            ->first();
+        
+        if ($existingFile) {
+            throw new \RuntimeException('目标目录已存在同名文件');
+        }
+
+        // 移动文件（更新 directory_id）
+        $file->directory_id = $targetDirectoryId;
+        $file->save();
+
+        return [
+            'id' => $file->id,
+            'name' => $file->name,
+            'directory_id' => $file->directory_id,
+        ];
+    }
+
+    /**
+     * 批量删除文件（移动到回收站）
+     *
+     * @param array $fileIds 要删除的文件ID数组
+     * @return array 删除结果统计
+     */
+    public function batchDelete(array $fileIds): array
+    {
+        $successCount = 0;
+        $failedItems = [];
+
+        foreach ($fileIds as $fileId) {
+            try {
+                $this->deleteFile($fileId);
+                $successCount++;
+            } catch (\Throwable $e) {
+                $failedItems[] = [
+                    'file_id' => $fileId,
+                    'reason' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'success_count' => $successCount,
+            'failed_count' => count($failedItems),
+            'failed_items' => $failedItems,
+        ];
+    }
+
+    /**
+     * 批量移动文件
+     *
+     * @param array $fileIds 要移动的文件ID数组
+     * @param int $targetDirectoryId 目标目录ID
+     * @return array 移动结果统计
+     */
+    public function batchMove(array $fileIds, int $targetDirectoryId): array
+    {
+        $successCount = 0;
+        $failedItems = [];
+
+        foreach ($fileIds as $fileId) {
+            try {
+                $this->move($fileId, $targetDirectoryId);
+                $successCount++;
+            } catch (\Throwable $e) {
+                $failedItems[] = [
+                    'file_id' => $fileId,
+                    'reason' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'success_count' => $successCount,
+            'failed_count' => count($failedItems),
+            'failed_items' => $failedItems,
+        ];
     }
 }

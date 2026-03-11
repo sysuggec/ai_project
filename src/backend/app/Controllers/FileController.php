@@ -99,4 +99,67 @@ class FileController
             ],
         ]);
     }
+
+    /**
+     * 移动文件到目标目录
+     */
+    public function move(Request $request, string $id): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = json_decode($request->getContent(), true);
+        $targetDirectoryId = $data['target_directory_id'] ?? null;
+
+        if ($targetDirectoryId === null) {
+            return Response::error('目标目录ID是必需的');
+        }
+
+        try {
+            $file = $this->fileService->move((int) $id, (int) $targetDirectoryId);
+            return Response::success(['file' => $file]);
+        } catch (\InvalidArgumentException $e) {
+            return Response::error($e->getMessage(), 400);
+        } catch (\RuntimeException $e) {
+            return Response::error($e->getMessage(), 409);
+        } catch (\Throwable $e) {
+            return Response::error('移动文件失败: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * 批量删除文件
+     */
+    public function batchDelete(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = json_decode($request->getContent(), true);
+        $fileIds = $data['file_ids'] ?? [];
+
+        if (empty($fileIds) || !is_array($fileIds)) {
+            return Response::error('文件ID数组不能为空');
+        }
+
+        $result = $this->fileService->batchDelete($fileIds);
+
+        return Response::success($result);
+    }
+
+    /**
+     * 批量移动文件
+     */
+    public function batchMove(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = json_decode($request->getContent(), true);
+        $fileIds = $data['file_ids'] ?? [];
+        $targetDirectoryId = $data['target_directory_id'] ?? null;
+
+        if (empty($fileIds) || !is_array($fileIds)) {
+            return Response::error('文件ID数组不能为空');
+        }
+
+        if ($targetDirectoryId === null) {
+            return Response::error('目标目录ID是必需的');
+        }
+
+        $result = $this->fileService->batchMove($fileIds, (int) $targetDirectoryId);
+
+        return Response::success($result);
+    }
 }
