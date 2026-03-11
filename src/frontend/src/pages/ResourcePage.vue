@@ -7,6 +7,16 @@
       </button>
     </div>
 
+    <!-- 批量操作工具栏 -->
+    <BatchOperationBar
+      :visible="hasSelection"
+      :selectedFiles="selectedFiles"
+      @batch-delete="handleBatchDelete"
+      @batch-move="handleBatchMove"
+      @batch-download="handleBatchDownload"
+      @clear-selection="clearSelection"
+    />
+
     <div class="content">
       <DirectoryTree
         :directories="directories"
@@ -18,6 +28,7 @@
       <FileList
         :files="files"
         :loading="loading"
+        :selectedFiles="selectedFiles"
         @download="handleDownload"
         @copyLink="handleCopyLink"
         @delete="handleDelete"
@@ -26,12 +37,27 @@
         @preview="handlePreview"
         @play="handlePlay"
         @viewText="handleViewText"
+        @move="handleMove"
+        @share="handleShare"
+        @select="handleFileSelect"
+        @select-all="handleSelectAll"
         class="file-list"
       />
     </div>
 
     <ConfirmDialog ref="confirmDialog" />
     <RenameDialog ref="renameDialog" />
+    <MoveDialog
+      ref="moveDialog"
+      :directories="flattenedDirectories"
+      @confirm="handleMoveConfirm"
+      @cancel="handleMoveCancel"
+    />
+    <ShareDialog
+      ref="shareDialog"
+      @cancel="handleShareCancel"
+      @created="handleShareCreated"
+    />
     <ImagePreview ref="imagePreview" />
     <VideoPlayer ref="videoPlayer" />
     <TextViewer ref="textViewer" />
@@ -39,17 +65,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import SearchBar from '../components/resource/SearchBar.vue'
 import DirectoryTree from '../components/resource/DirectoryTree.vue'
 import FileList from '../components/resource/FileList.vue'
+import BatchOperationBar from '../components/resource/BatchOperationBar.vue'
+import MoveDialog from '../components/resource/MoveDialog.vue'
+import ShareDialog from '../components/resource/ShareDialog.vue'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import RenameDialog from '../components/common/RenameDialog.vue'
 import ImagePreview from '../components/common/ImagePreview.vue'
 import VideoPlayer from '../components/common/VideoPlayer.vue'
 import TextViewer from '../components/common/TextViewer.vue'
 import { useResource } from '../composables/useResource'
+import { useBatchOperation } from '../composables/useBatchOperation'
 import { getDownloadUrl } from '../api/resource'
+import { moveFile, batchDeleteFiles, batchMoveFiles } from '../api/file'
 
 const {
   files,
@@ -65,15 +96,51 @@ const {
   copyDownloadLink,
 } = useResource()
 
+const {
+  selectedFiles,
+  hasSelection,
+  clearSelection,
+  selectFile,
+  deselectFile,
+  selectAll,
+} = useBatchOperation()
+
 const showToast = inject('showToast')
 const confirmDialog = ref(null)
 const renameDialog = ref(null)
+const moveDialog = ref(null)
+const shareDialog = ref(null)
 const imagePreview = ref(null)
 const videoPlayer = ref(null)
 const textViewer = ref(null)
 
+// 当前操作的文件（移动/分享）
+const currentFile = ref(null)
+const selectedFilesForMove = ref([])
+
 onMounted(async () => {
   await Promise.all([loadDirectories(), loadFiles()])
+})
+
+// 扁平化目录树用于移动对话框
+const flattenedDirectories = computed(() => {
+  const result = []
+
+  const flatten = (dirs, level = 0) => {
+    dirs.forEach(dir => {
+      result.push({
+        id: dir.id,
+        name: '  '.repeat(level) + dir.name,
+        path: dir.path,
+      })
+      if (dir.children && dir.children.length > 0) {
+        flatten(dir.children, level + 1)
+      }
+    })
+  }
+
+  flatten(directories.value)
+  return result
 })
 
 const handleSearch = () => {
@@ -89,6 +156,25 @@ const refreshFiles = () => {
   loadFiles(selectedDirectory.value, searchQuery.value)
 }
 
+// 文件选择处理
+const handleFileSelect = (file) => {
+  const index = selectedFiles.value.findIndex(f => f.id === file.id)
+  if (index === -1) {
+    selectFile(file)
+  } else {
+    deselectFile(file.id)
+  }
+}
+
+const handleSelectAll = (files) => {
+  if (files.length === 0) {
+    clearSelection()
+  } else {
+    selectAll(files)
+  }
+}
+
+// 下载处理
 const handleDownload = (file) => {
   downloadFile(file.id)
 }
@@ -102,6 +188,7 @@ const handleCopyLink = async (file) => {
   }
 }
 
+// 删除处理
 const handleDelete = async (file) => {
   const confirmed = await confirmDialog.value?.show(
     '确认删除',
@@ -118,6 +205,7 @@ const handleDelete = async (file) => {
   }
 }
 
+// 重命名处理
 const handleRename = async (file) => {
   const newName = await renameDialog.value?.show(file.name)
   if (newName && newName !== file.name) {
@@ -131,6 +219,7 @@ const handleRename = async (file) => {
   }
 }
 
+// 显示物理位置
 const handleShowLocation = async (file) => {
   if (file.storage_path) {
     try {
@@ -145,6 +234,7 @@ const handleShowLocation = async (file) => {
   }
 }
 
+// 预览和播放
 const handlePreview = (file) => {
   const url = getDownloadUrl(file.id)
   imagePreview.value?.show(url, file.name)
@@ -158,6 +248,101 @@ const handlePlay = (file) => {
 const handleViewText = (file) => {
   const url = getDownloadUrl(file.id)
   textViewer.value?.show(url, file.name, file.id)
+}
+
+// 移动文件
+const handleMove = (file) => {
+  currentFile.value = file
+  moveDialog.value?.show()
+}
+
+const handleMoveConfirm = async (targetDirectoryId) => {
+  if (!currentFile.value) return
+
+  try {
+    // 判断是批量移动还是单个移动
+    if (selectedFilesForMove.value && selectedFilesForMove.value.length > 0) {
+      // 批量移动
+      const result = await batchMoveFiles(
+        selectedFilesForMove.value.map(f => f.id),
+        targetDirectoryId
+      )
+      showToast(
+        `移动成功 ${result.data.success_count} 个，失败 ${result.data.failed_count} 个`,
+        result.data.failed_count > 0 ? 'warning' : 'success'
+      )
+      clearSelection()
+      selectedFilesForMove.value = []
+    } else {
+      // 单个移动
+      await moveFile(currentFile.value.id, targetDirectoryId)
+      showToast('文件移动成功', 'success')
+    }
+    refreshFiles()
+  } catch (error) {
+    showToast(error.response?.data?.error || '移动失败', 'error')
+  } finally {
+    currentFile.value = null
+    moveDialog.value?.hide()
+  }
+}
+
+const handleMoveCancel = () => {
+  currentFile.value = null
+  moveDialog.value?.hide()
+}
+
+// 分享文件
+const handleShare = (file) => {
+  currentFile.value = file
+  shareDialog.value?.show()
+}
+
+const handleShareCancel = () => {
+  currentFile.value = null
+  shareDialog.value?.hide()
+}
+
+const handleShareCreated = () => {
+  currentFile.value = null
+  shareDialog.value?.hide()
+}
+
+// 批量操作
+const handleBatchDelete = async (files) => {
+  const confirmed = await confirmDialog.value?.show(
+    '确认批量删除',
+    `确定要删除选中的 ${files.length} 个文件吗？`
+  )
+
+  if (confirmed) {
+    try {
+      const result = await batchDeleteFiles(files.map(f => f.id))
+      showToast(
+        `删除成功 ${result.data.success_count} 个，失败 ${result.data.failed_count} 个`,
+        result.data.failed_count > 0 ? 'warning' : 'success'
+      )
+      clearSelection()
+      refreshFiles()
+    } catch (error) {
+      showToast(error.response?.data?.error || '批量删除失败', 'error')
+    }
+  }
+}
+
+const handleBatchMove = (files) => {
+  currentFile.value = files[0] // 用于标记当前操作
+  // 保存所有选中的文件
+  selectedFilesForMove.value = [...files]
+  moveDialog.value?.show()
+}
+
+const handleBatchDownload = (files) => {
+  files.forEach(file => {
+    downloadFile(file.id)
+  })
+  showToast(`开始下载 ${files.length} 个文件`, 'success')
+  clearSelection()
 }
 </script>
 

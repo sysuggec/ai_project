@@ -3,11 +3,38 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="files.length === 0" class="empty">暂无文件</div>
     <div v-else class="files">
+      <!-- 全选控制 -->
+      <div class="select-all-bar">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            :checked="isAllSelected"
+            @change="handleSelectAll"
+          />
+          <span>全选</span>
+        </label>
+        <span class="selected-count" v-if="selectedCount > 0">
+          已选择 {{ selectedCount }} 个文件
+        </span>
+      </div>
+
+      <!-- 文件列表 -->
       <div
         v-for="file in files"
         :key="file.id"
-        class="file-item"
+        :class="['file-item', { selected: isSelected(file.id) }]"
+        draggable="true"
+        @dragstart="handleDragStart($event, file)"
       >
+        <!-- 复选框 -->
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            :checked="isSelected(file.id)"
+            @change="handleToggleSelect(file)"
+          />
+        </label>
+
         <div class="file-icon">
           {{ getFileIcon(file.mime_type) }}
         </div>
@@ -51,6 +78,12 @@
           <button class="action-btn" @click="$emit('showLocation', file)" title="查看物理位置">
             📁
           </button>
+          <button class="action-btn" @click="$emit('move', file)" title="移动">
+            📂
+          </button>
+          <button class="action-btn" @click="$emit('share', file)" title="分享">
+            📤
+          </button>
           <button class="action-btn" @click="$emit('rename', file)" title="重命名">
             ✏️
           </button>
@@ -64,7 +97,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   files: {
     type: Array,
     default: () => []
@@ -72,10 +107,46 @@ defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  selectedFiles: {
+    type: Array,
+    default: () => []
   }
 })
 
-defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview', 'play', 'viewText'])
+const emit = defineEmits([
+  'download', 'copyLink', 'delete', 'rename', 'showLocation',
+  'preview', 'play', 'viewText', 'move', 'share',
+  'select', 'select-all', 'drag-start'
+])
+
+const isSelected = (fileId) => {
+  return props.selectedFiles.some(f => f.id === fileId)
+}
+
+const selectedCount = computed(() => props.selectedFiles.length)
+
+const isAllSelected = computed(() => {
+  return props.files.length > 0 && props.selectedFiles.length === props.files.length
+})
+
+const handleToggleSelect = (file) => {
+  emit('select', file)
+}
+
+const handleSelectAll = () => {
+  if (isAllSelected.value) {
+    emit('select-all', [])
+  } else {
+    emit('select-all', [...props.files])
+  }
+}
+
+const handleDragStart = (event, file) => {
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', JSON.stringify(file))
+  emit('drag-start', file)
+}
 
 const isImage = (mimeType) => {
   return mimeType && mimeType.startsWith('image/')
@@ -132,6 +203,35 @@ const getFileIcon = (mimeType) => {
   gap: 8px;
 }
 
+.select-all-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.selected-count {
+  font-size: 14px;
+  color: #1976d2;
+  font-weight: 500;
+}
+
 .file-item {
   display: flex;
   align-items: center;
@@ -139,6 +239,16 @@ const getFileIcon = (mimeType) => {
   background: #f9f9f9;
   border-radius: 8px;
   gap: 12px;
+  transition: all 0.2s;
+}
+
+.file-item.selected {
+  background: #e3f2fd;
+  border: 2px solid #1976d2;
+}
+
+.file-item:hover {
+  background: #f0f0f0;
 }
 
 .file-icon {
