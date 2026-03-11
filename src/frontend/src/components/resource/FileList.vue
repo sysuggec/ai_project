@@ -26,6 +26,14 @@
           >
             👁️
           </button>
+          <button
+            v-if="isVideo(file.mime_type)"
+            class="action-btn"
+            @click="$emit('play', file)"
+            title="播放"
+          >
+            ▶️
+          </button>
           <button class="action-btn" @click="$emit('download', file)" title="下载">
             ⬇️
           </button>
@@ -59,10 +67,14 @@ defineProps({
   }
 })
 
-defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview'])
+defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview', 'play'])
 
 const isImage = (mimeType) => {
   return mimeType && mimeType.startsWith('image/')
+}
+
+const isVideo = (mimeType) => {
+  return mimeType && mimeType.startsWith('video/')
 }
 
 const formatSize = (bytes) => {
