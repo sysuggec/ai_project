@@ -7,6 +7,8 @@
 - **资源管理**：按目录结构展示资源列表、点击下载资源、复制下载链接
 - **图片预览**：图片文件支持在线预览，点击预览按钮打开全屏图片查看器
 - **视频播放**：视频文件支持在线播放，点击播放按钮打开全屏视频播放器
+- **文本查看**：文本和 Markdown 文件支持在线查看，Markdown 自动渲染预览
+- **文本编辑**：文本文件支持在线编辑和保存，实时更新文件内容
 - **高级功能**：秒传（SHA-256 哈希去重）、上传历史记录、搜索功能
 - **文件操作**：删除、重命名（保持原文件名）、查看文件物理位置
 
@@ -81,6 +83,7 @@ CREATE TABLE upload_histories (
 | GET | `/api/files/{id}/download` | 下载文件 |
 | DELETE | `/api/files/{id}` | 删除文件 |
 | PUT | `/api/files/{id}` | 重命名文件 |
+| PUT | `/api/files/{id}/content` | 更新文件内容 |
 
 > **复制下载链接**：前端生成下载链接 `{origin}/api/files/{id}/download` 并复制到剪贴板，无需后端接口。
 >
@@ -146,7 +149,8 @@ src/frontend/
 │       ├── ConfirmDialog.vue   # 确认对话框
 │       ├── RenameDialog.vue    # 重命名对话框
 │       ├── ImagePreview.vue    # 图片预览组件
-│       └── VideoPlayer.vue     # 视频播放组件
+│       ├── VideoPlayer.vue     # 视频播放组件
+│       └── TextViewer.vue      # 文本查看组件
 ├── api/
 │   ├── upload.js        # 上传相关 API
 │   └── resource.js      # 资源管理 API

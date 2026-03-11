@@ -40,3 +40,8 @@ export const renameFile = async (id, name) => {
   const response = await api.put(`/files/${id}`, { name })
   return response.data
 }
+
+export const updateFileContent = async (id, content) => {
+  const response = await api.put(`/files/${id}/content`, { content })
+  return response.data
+}

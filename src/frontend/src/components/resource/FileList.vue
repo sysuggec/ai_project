@@ -34,6 +34,14 @@
           >
             ▶️
           </button>
+          <button
+            v-if="isTextViewable(file.mime_type, file.name)"
+            class="action-btn"
+            @click="$emit('viewText', file)"
+            title="查看"
+          >
+            📄
+          </button>
           <button class="action-btn" @click="$emit('download', file)" title="下载">
             ⬇️
           </button>
@@ -67,7 +75,7 @@ defineProps({
   }
 })
 
-defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview', 'play'])
+defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview', 'play', 'viewText'])
 
 const isImage = (mimeType) => {
   return mimeType && mimeType.startsWith('image/')
@@ -75,6 +83,14 @@ const isImage = (mimeType) => {
 
 const isVideo = (mimeType) => {
   return mimeType && mimeType.startsWith('video/')
+}
+
+const isTextViewable = (mimeType, fileName) => {
+  if (mimeType && mimeType.startsWith('text/')) return true
+  // 检查文件扩展名
+  const ext = fileName?.toLowerCase().split('.').pop()
+  const textExtensions = ['txt', 'md', 'markdown', 'json', 'js', 'ts', 'vue', 'jsx', 'tsx', 'css', 'scss', 'html', 'xml', 'yaml', 'yml', 'ini', 'conf', 'log', 'sh', 'bash', 'py', 'java', 'c', 'cpp', 'h', 'go', 'rs', 'php', 'sql']
+  return textExtensions.includes(ext)
 }
 
 const formatSize = (bytes) => {

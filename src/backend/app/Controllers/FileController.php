@@ -79,4 +79,24 @@ class FileController
             ],
         ]);
     }
+
+    public function updateContent(Request $request, string $id): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? '';
+
+        $file = $this->fileService->updateFileContent((int) $id, $content);
+
+        if (!$file) {
+            return Response::error('File not found or cannot be updated', 404);
+        }
+
+        return Response::success([
+            'file' => [
+                'id' => $file->id,
+                'name' => $file->name,
+                'size' => $file->size,
+            ],
+        ]);
+    }
 }

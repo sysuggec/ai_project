@@ -25,6 +25,7 @@
         @showLocation="handleShowLocation"
         @preview="handlePreview"
         @play="handlePlay"
+        @viewText="handleViewText"
         class="file-list"
       />
     </div>
@@ -33,6 +34,7 @@
     <RenameDialog ref="renameDialog" />
     <ImagePreview ref="imagePreview" />
     <VideoPlayer ref="videoPlayer" />
+    <TextViewer ref="textViewer" />
   </div>
 </template>
 
@@ -45,6 +47,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import RenameDialog from '../components/common/RenameDialog.vue'
 import ImagePreview from '../components/common/ImagePreview.vue'
 import VideoPlayer from '../components/common/VideoPlayer.vue'
+import TextViewer from '../components/common/TextViewer.vue'
 import { useResource } from '../composables/useResource'
 import { getDownloadUrl } from '../api/resource'
 
@@ -67,6 +70,7 @@ const confirmDialog = ref(null)
 const renameDialog = ref(null)
 const imagePreview = ref(null)
 const videoPlayer = ref(null)
+const textViewer = ref(null)
 
 onMounted(async () => {
   await Promise.all([loadDirectories(), loadFiles()])
@@ -149,6 +153,11 @@ const handlePreview = (file) => {
 const handlePlay = (file) => {
   const url = getDownloadUrl(file.id)
   videoPlayer.value?.show(url, file.name)
+}
+
+const handleViewText = (file) => {
+  const url = getDownloadUrl(file.id)
+  textViewer.value?.show(url, file.name, file.id)
 }
 </script>
 

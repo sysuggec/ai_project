@@ -93,4 +93,29 @@ class FileService
             'mime_type' => $file->mime_type,
         ];
     }
+
+    public function updateFileContent(int $id, string $content): ?FileModel
+    {
+        $file = FileModel::find($id);
+
+        if (!$file) {
+            return null;
+        }
+
+        if (!file_exists($file->storage_path)) {
+            return null;
+        }
+
+        // 写入新内容
+        $bytesWritten = file_put_contents($file->storage_path, $content);
+        if ($bytesWritten === false) {
+            return null;
+        }
+
+        // 更新文件大小
+        $file->size = strlen($content);
+        $file->save();
+
+        return $file;
+    }
 }

@@ -18,6 +18,7 @@ $app->get('/api/files', [$fileController, 'index']);
 $app->get('/api/files/{id}/download', [$fileController, 'download']);
 $app->delete('/api/files/{id}', [$fileController, 'delete']);
 $app->put('/api/files/{id}', [$fileController, 'rename']);
+$app->put('/api/files/{id}/content', [$fileController, 'updateContent']);
 
 $app->get('/api/directories', [$directoryController, 'index']);
 $app->post('/api/directories', [$directoryController, 'create']);
