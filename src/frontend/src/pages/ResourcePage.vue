@@ -23,12 +23,14 @@
         @delete="handleDelete"
         @rename="handleRename"
         @showLocation="handleShowLocation"
+        @preview="handlePreview"
         class="file-list"
       />
     </div>
 
     <ConfirmDialog ref="confirmDialog" />
     <RenameDialog ref="renameDialog" />
+    <ImagePreview ref="imagePreview" />
   </div>
 </template>
 
@@ -39,7 +41,9 @@ import DirectoryTree from '../components/resource/DirectoryTree.vue'
 import FileList from '../components/resource/FileList.vue'
 import ConfirmDialog from '../components/common/ConfirmDialog.vue'
 import RenameDialog from '../components/common/RenameDialog.vue'
+import ImagePreview from '../components/common/ImagePreview.vue'
 import { useResource } from '../composables/useResource'
+import { getDownloadUrl } from '../api/resource'
 
 const {
   files,
@@ -58,6 +62,7 @@ const {
 const showToast = inject('showToast')
 const confirmDialog = ref(null)
 const renameDialog = ref(null)
+const imagePreview = ref(null)
 
 onMounted(async () => {
   await Promise.all([loadDirectories(), loadFiles()])
@@ -130,6 +135,11 @@ const handleShowLocation = async (file) => {
   } else {
     showToast('无法获取文件物理路径', 'error')
   }
+}
+
+const handlePreview = (file) => {
+  const url = getDownloadUrl(file.id)
+  imagePreview.value?.show(url, file.name)
 }
 </script>
 

@@ -18,6 +18,14 @@
           </span>
         </div>
         <div class="file-actions">
+          <button
+            v-if="isImage(file.mime_type)"
+            class="action-btn"
+            @click="$emit('preview', file)"
+            title="预览"
+          >
+            👁️
+          </button>
           <button class="action-btn" @click="$emit('download', file)" title="下载">
             ⬇️
           </button>
@@ -51,7 +59,11 @@ defineProps({
   }
 })
 
-defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation'])
+defineEmits(['download', 'copyLink', 'delete', 'rename', 'showLocation', 'preview'])
+
+const isImage = (mimeType) => {
+  return mimeType && mimeType.startsWith('image/')
+}
 
 const formatSize = (bytes) => {
   if (bytes === 0) return '0 B'
