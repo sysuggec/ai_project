@@ -31,6 +31,7 @@ Thumbs.db
 
 # Test reports
 playwright/reports/
+playwright/TEST_REPORT.md
 
 # Temporary Vite deps
 src/frontend/node_modules/.vite/deps_temp*/

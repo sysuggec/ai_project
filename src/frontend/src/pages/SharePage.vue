@@ -62,7 +62,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useShare } from '@/composables/useShare'
-import { useToast } from '@/components/common/Toast.vue'
+import { useToast } from '@/composables/useToast'
 
 const { shareList, loading, error, fetchShareList, deleteShare } = useShare()
 const { showToast } = useToast()

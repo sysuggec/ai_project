@@ -67,7 +67,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useTrash } from '@/composables/useTrash'
-import { useToast } from '@/components/common/Toast.vue'
+import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const { trashList, loading, error, fetchTrashList, restoreFile, deletePermanently, clearTrash } = useTrash()

@@ -4,6 +4,8 @@
 
 资源上传下载管理系统，前后端分离架构，支持秒传（SHA-256 哈希去重）、文件/文件夹拖拽上传、图片在线预览、视频在线播放、文本在线查看与编辑。
 
+**v1.1.0 新增**: 回收站、文件分享、批量操作、Vue Router SPA 导航。
+
 ## 技术栈
 
 - **前端**: Vue 3 + Composition API + Vite
@@ -53,7 +55,8 @@ cd playwright && npm run report        # 查看测试报告
 - 无 Laravel 容器，手动依赖注入
 
 **前端核心**：
-- Composition API 复用逻辑（`useUpload`, `useResource`）
+- Vue Router SPA 导航（`src/frontend/src/router/`）
+- Composition API 复用逻辑（`useUpload`, `useResource`, `useTrash`, `useShare`）
 - API 层封装（`src/api/`）
 - Vite 开发代理避免跨域
 - 构建集成到后端 `public/` 目录
@@ -70,6 +73,14 @@ cd playwright && npm run report        # 查看测试报告
 - `directories`: 目录树
 - `files`: 文件记录（含哈希、存储路径）
 - `upload_histories`: 上传历史
+- `deleted_files`: 回收站记录（v1.1.0）
+- `shares`: 文件分享记录（v1.1.0）
+
+**v1.1.0 新功能**：
+- **回收站**: 软删除、恢复、永久删除、30天自动清理
+- **文件分享**: 创建分享链接、设置过期时间、密码保护、下载计数
+- **批量操作**: 多文件选择、批量删除、批量移动
+- **Vue Router**: SPA 路由导航，页面间无刷新切换
 
 ## 详细文档索引
 

@@ -2,10 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  fullyParallel: false,  // 禁用全并行，避免测试间竞争
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,  // 单线程执行，确保测试顺序
   reporter: [
     ['html', { outputFolder: 'reports/html-report', open: 'never' }],
     ['junit', { outputFile: 'reports/junit-report.xml' }],

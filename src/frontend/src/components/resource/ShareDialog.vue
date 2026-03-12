@@ -78,7 +78,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useShare } from '@/composables/useShare'
-import { useToast } from './common/Toast.vue'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   visible: {

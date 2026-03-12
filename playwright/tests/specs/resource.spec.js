@@ -21,7 +21,14 @@ function createTestFile(filename, content) {
   return filePath;
 }
 
-// 先上传一个测试文件的辅助函数
+// 清理测试文件
+function cleanupTestFiles() {
+  if (fs.existsSync(TEST_DIR)) {
+    fs.rmSync(TEST_DIR, { recursive: true, force: true });
+  }
+}
+
+// 上传测试文件
 async function uploadTestFile(page, filename, content) {
   const uploadPage = new UploadPage(page);
   await uploadPage.goto();
@@ -31,8 +38,7 @@ async function uploadTestFile(page, filename, content) {
   await uploadPage.startUpload();
   await uploadPage.waitForUploadComplete();
   
-  // 清理测试文件
-  fs.rmSync(TEST_DIR, { recursive: true, force: true });
+  cleanupTestFiles();
 }
 
 test.describe('资源列表功能测试', () => {
@@ -89,18 +95,28 @@ test.describe('资源列表功能测试', () => {
 });
 
 test.describe('文件操作测试', () => {
-  test('应该能够下载文件', async ({ page }) => {
-    // 先上传一个文件
-    await uploadTestFile(page, 'download-test.txt', 'Download me!');
+  test.describe.configure({ mode: 'serial' });  // 串行执行
+
+  test('准备测试数据 - 上传文件', async ({ page }) => {
+    // 上传一个用于测试的文件
+    await uploadTestFile(page, 'test-file-for-ops.txt', 'Test content for operations');
     
+    // 验证上传成功
     const resourcePage = new ResourcePage(page);
     await resourcePage.goto();
     await resourcePage.refresh();
     
-    // 等待文件列表加载
+    const fileCount = await resourcePage.getFileCount();
+    expect(fileCount).toBeGreaterThan(0);
+  });
+
+  test('应该能够下载文件', async ({ page }) => {
+    const resourcePage = new ResourcePage(page);
+    await resourcePage.goto();
+    await resourcePage.refresh();
+    
     await page.waitForTimeout(500);
     
-    // 获取文件数量
     const fileCount = await resourcePage.getFileCount();
     
     if (fileCount > 0) {
@@ -111,7 +127,7 @@ test.describe('文件操作测试', () => {
   });
 
   test('应该能够删除文件', async ({ page }) => {
-    // 先上传一个文件
+    // 上传一个新文件用于删除测试
     const uniqueName = `delete-test-${Date.now()}.txt`;
     await uploadTestFile(page, uniqueName, 'Delete me!');
     
@@ -119,10 +135,8 @@ test.describe('文件操作测试', () => {
     await resourcePage.goto();
     await resourcePage.refresh();
     
-    // 等待文件列表加载
     await page.waitForTimeout(500);
     
-    // 获取初始文件数量
     const initialCount = await resourcePage.getFileCount();
     
     if (initialCount > 0) {
@@ -133,14 +147,13 @@ test.describe('文件操作测试', () => {
       const toast = await resourcePage.getToastMessage();
       expect(toast).toContain('删除成功');
       
-      // 刷新并验证文件数量减少
       await resourcePage.refresh();
       await page.waitForTimeout(500);
     }
   });
 
   test('应该能够重命名文件', async ({ page }) => {
-    // 先上传一个文件
+    // 上传一个新文件用于重命名测试
     const originalName = `rename-test-${Date.now()}.txt`;
     await uploadTestFile(page, originalName, 'Rename me!');
     
@@ -148,7 +161,6 @@ test.describe('文件操作测试', () => {
     await resourcePage.goto();
     await resourcePage.refresh();
     
-    // 等待文件列表加载
     await page.waitForTimeout(500);
     
     const fileCount = await resourcePage.getFileCount();
@@ -174,7 +186,7 @@ test.describe('目录树功能测试', () => {
     // 验证目录树存在
     const treeItems = await page.locator('.tree-item');
     const count = await treeItems.count();
-    expect(count).toBeGreaterThanOrEqual(0); // 可能有目录或为空
+    expect(count).toBeGreaterThanOrEqual(0);
   });
 
   test('应该能够切换目录', async ({ page }) => {
@@ -186,10 +198,8 @@ test.describe('目录树功能测试', () => {
     if (await treeItems.count() > 0) {
       await treeItems.first().click();
       
-      // 等待文件列表刷新
       await page.waitForTimeout(500);
       
-      // 验证没有错误
       await expect(page.locator('.error')).not.toBeVisible();
     }
   });
