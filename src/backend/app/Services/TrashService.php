@@ -6,7 +6,8 @@ namespace App\Services;
 use App\Models\DeletedFileModel;
 use App\Models\FileModel;
 use App\Models\DirectoryModel;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Capsule\Manager as DB;
+use Carbon\Carbon;
 
 /**
  * 回收站服务
@@ -74,7 +75,7 @@ class TrashService
         }
 
         // 计算过期时间
-        $expiresAt = now()->addDays(self::RETENTION_DAYS);
+        $expiresAt = Carbon::now()->addDays(self::RETENTION_DAYS);
 
         // 获取原目录路径
         $directory = DirectoryModel::find($file->directory_id);
@@ -90,7 +91,7 @@ class TrashService
             'hash' => $file->hash,
             'storage_path' => $file->storage_path,
             'mime_type' => $file->mime_type,
-            'deleted_at' => now(),
+            'deleted_at' => Carbon::now(),
             'expires_at' => $expiresAt,
         ]);
 
@@ -139,7 +140,8 @@ class TrashService
             throw new \RuntimeException('原位置已存在同名文件');
         }
 
-        DB::beginTransaction();
+        $connection = DB::connection();
+        $connection->beginTransaction();
         try {
             // 恢复文件记录
             FileModel::create([
@@ -149,16 +151,16 @@ class TrashService
                 'mime_type' => $deletedFile->mime_type,
                 'directory_id' => $targetDirectoryId,
                 'storage_path' => $deletedFile->storage_path,
-                'upload_time' => now(),
+                'upload_time' => Carbon::now(),
             ]);
 
             // 删除回收站记录
             $deletedFile->delete();
 
-            DB::commit();
+            $connection->commit();
             return true;
         } catch (\Throwable $e) {
-            DB::rollBack();
+            $connection->rollBack();
             throw new \RuntimeException('恢复文件失败: ' . $e->getMessage());
         }
     }
@@ -224,7 +226,7 @@ class TrashService
      */
     public function autoCleanup(): int
     {
-        $expiredFiles = DeletedFileModel::where('expires_at', '<', now())->get();
+        $expiredFiles = DeletedFileModel::where('expires_at', '<', Carbon::now())->get();
         $count = 0;
 
         foreach ($expiredFiles as $expiredFile) {

@@ -19,7 +19,7 @@ export function useTrash() {
     try {
       const response = await getTrashList()
       if (response.success) {
-        trashList.value = response.data.files
+        trashList.value = response.files || []
       } else {
         error.value = response.error
       }
@@ -39,7 +39,7 @@ export function useTrash() {
       if (response.success) {
         // 从列表中移除
         trashList.value = trashList.value.filter(f => f.id !== id)
-        return { success: true, message: response.data.message }
+        return { success: true, message: response.message }
       } else {
         return { success: false, error: response.error }
       }
@@ -57,7 +57,7 @@ export function useTrash() {
       if (response.success) {
         // 从列表中移除
         trashList.value = trashList.value.filter(f => f.id !== id)
-        return { success: true, message: response.data.message }
+        return { success: true, message: response.message }
       } else {
         return { success: false, error: response.error }
       }
@@ -74,7 +74,7 @@ export function useTrash() {
       const response = await clearTrash()
       if (response.success) {
         trashList.value = []
-        return { success: true, message: response.data.message, count: response.data.deleted_count }
+        return { success: true, message: response.message, count: response.deleted_count }
       } else {
         return { success: false, error: response.error }
       }
