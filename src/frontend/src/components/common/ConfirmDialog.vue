@@ -1,12 +1,12 @@
 <template>
   <Transition name="modal">
-    <div v-if="visible" class="modal-overlay" @click.self="cancel">
+    <div v-if="isVisible" class="modal-overlay" @click.self="handleCancel">
       <div class="modal">
-        <h3 class="modal-title">{{ title }}</h3>
-        <p class="modal-message">{{ message }}</p>
+        <h3 class="modal-title">{{ currentTitle }}</h3>
+        <p class="modal-message">{{ currentMessage }}</p>
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="cancel">取消</button>
-          <button class="btn btn-primary" @click="confirm">确认</button>
+          <button class="btn btn-secondary" @click="handleCancel">取消</button>
+          <button class="btn btn-primary" @click="handleConfirm">确认</button>
         </div>
       </div>
     </div>
@@ -14,30 +14,75 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-const visible = ref(false)
-const title = ref('')
-const message = ref('')
+const props = defineProps({
+  visible: {
+    type: Boolean,
+    default: false
+  },
+  title: {
+    type: String,
+    default: ''
+  },
+  message: {
+    type: String,
+    default: ''
+  }
+})
+
+const emit = defineEmits(['confirm', 'cancel'])
+
+// 内部状态（用于 ref.show() 方式）
+const internalVisible = ref(false)
+const internalTitle = ref('')
+const internalMessage = ref('')
 let resolvePromise = null
 
-const show = (t, m) => {
-  title.value = t
-  message.value = m
-  visible.value = true
+// 计算实际显示状态和内容
+// 优先使用内部状态（ref.show() 方式），否则使用 props
+const isVisible = computed(() => {
+  return internalVisible.value || props.visible
+})
+
+const currentTitle = computed(() => {
+  return internalTitle.value || props.title
+})
+
+const currentMessage = computed(() => {
+  return internalMessage.value || props.message
+})
+
+// ref.show() 方式的接口
+const show = (title, message) => {
+  internalTitle.value = title
+  internalMessage.value = message
+  internalVisible.value = true
   return new Promise((resolve) => {
     resolvePromise = resolve
   })
 }
 
-const confirm = () => {
-  visible.value = false
-  resolvePromise?.(true)
+const handleConfirm = () => {
+  // 如果是 ref.show() 方式调用
+  if (resolvePromise) {
+    internalVisible.value = false
+    resolvePromise(true)
+    resolvePromise = null
+  }
+  // 同时 emit 事件（支持 props + events 方式）
+  emit('confirm')
 }
 
-const cancel = () => {
-  visible.value = false
-  resolvePromise?.(false)
+const handleCancel = () => {
+  // 如果是 ref.show() 方式调用
+  if (resolvePromise) {
+    internalVisible.value = false
+    resolvePromise(false)
+    resolvePromise = null
+  }
+  // 同时 emit 事件（支持 props + events 方式）
+  emit('cancel')
 }
 
 defineExpose({ show })
