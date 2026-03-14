@@ -76,26 +76,17 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useShare } from '@/composables/useShare'
 import { useToast } from '@/composables/useToast'
-
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false,
-  },
-  file: {
-    type: Object,
-    default: null,
-  },
-})
 
 const emit = defineEmits(['cancel', 'created'])
 
 const { createShare, loading, error } = useShare()
 const { showToast } = useToast()
 
+const visible = ref(false)
+const file = ref(null)
 const expiresIn = ref(86400)
 const usePassword = ref(false)
 const password = ref('')
@@ -103,23 +94,11 @@ const shareUrl = ref('')
 const expiresAt = ref('')
 const hasPassword = ref(false)
 
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    // 重置表单
-    expiresIn.value = 86400
-    usePassword.value = false
-    password.value = ''
-    shareUrl.value = ''
-    expiresAt.value = ''
-    hasPassword.value = false
-  }
-})
-
 const handleCreate = async () => {
-  if (!props.file) return
+  if (!file.value) return
 
   const result = await createShare(
-    props.file.id,
+    file.value.id,
     expiresIn.value,
     usePassword.value ? password.value : null
   )
@@ -146,7 +125,30 @@ const copyShareUrl = async () => {
 
 const handleCancel = () => {
   emit('cancel')
+  hide()
 }
+
+const show = (fileData) => {
+  file.value = fileData
+  visible.value = true
+  // 重置表单
+  expiresIn.value = 86400
+  usePassword.value = false
+  password.value = ''
+  shareUrl.value = ''
+  expiresAt.value = ''
+  hasPassword.value = false
+}
+
+const hide = () => {
+  visible.value = false
+}
+
+// 暴露方法给父组件
+defineExpose({
+  show,
+  hide
+})
 </script>
 
 <style scoped>

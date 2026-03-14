@@ -20,10 +20,12 @@ api.interceptors.response.use(
   }
 )
 
-export const getFiles = async (directory = null, search = null) => {
+export const getFiles = async (directory = null, search = null, page = 1, perPage = 20) => {
   const params = {}
   if (directory) params.directory = directory
   if (search) params.search = search
+  params.page = page
+  params.perPage = perPage
 
   const response = await api.get('/files', { params })
   return response
@@ -44,7 +46,21 @@ export const getDownloadUrl = (id) => {
 }
 
 export const downloadFile = (id) => {
-  window.open(`/api/files/${id}/download`, '_blank')
+  const link = document.createElement('a')
+  link.href = `/api/files/${id}/download`
+  link.download = ''
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+export const downloadMultipleFiles = (fileIds, delay = 500) => {
+  fileIds.forEach((id, index) => {
+    setTimeout(() => {
+      downloadFile(id)
+    }, index * delay)
+  })
 }
 
 export const deleteFile = async (id) => {

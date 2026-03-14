@@ -9,8 +9,12 @@ use Illuminate\Database\Eloquent\Builder;
 
 class FileService
 {
-    public function getFiles(?string $directoryPath = null, ?string $search = null): array
-    {
+    public function getFiles(
+        ?string $directoryPath = null,
+        ?string $search = null,
+        int $page = 1,
+        int $perPage = 20
+    ): array {
         $query = FileModel::with('directory');
 
         if ($directoryPath) {
@@ -24,24 +28,40 @@ class FileService
             $query->where('name', 'like', '%' . $search . '%');
         }
 
-        $files = $query->orderBy('created_at', 'desc')->get();
+        $total = $query->count();
+        $offset = ($page - 1) * $perPage;
 
-        return $files->map(function ($file) {
-            $uploadTime = $file->upload_time;
-            if ($uploadTime instanceof \DateTimeInterface) {
-                $uploadTime = $uploadTime->format('Y-m-d H:i:s');
-            }
+        $files = $query->orderBy('created_at', 'desc')
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
 
-            return [
-                'id' => $file->id,
-                'name' => $file->name,
-                'size' => $file->size,
-                'mime_type' => $file->mime_type,
-                'directory' => $file->directory?->path ?? '/',
-                'upload_time' => $uploadTime,
-                'storage_path' => $file->storage_path,
-            ];
-        })->toArray();
+        return [
+            'files' => $files->map(function ($file) {
+                $uploadTime = $file->upload_time;
+                if ($uploadTime instanceof \DateTimeInterface) {
+                    $uploadTime = $uploadTime->format('Y-m-d H:i:s');
+                }
+
+                return [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'size' => $file->size,
+                    'mime_type' => $file->mime_type,
+                    'directory' => $file->directory?->path ?? '/',
+                    'upload_time' => $uploadTime,
+                    'storage_path' => $file->storage_path,
+                ];
+            })->toArray(),
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $perPage),
+                'from' => $total > 0 ? $offset + 1 : 0,
+                'to' => min($offset + $perPage, $total),
+            ],
+        ];
     }
 
     public function deleteFile(int $id): bool

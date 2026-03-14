@@ -25,24 +25,35 @@
         class="sidebar"
       />
 
-      <FileList
-        :files="files"
-        :loading="loading"
-        :selectedFiles="selectedFiles"
-        @download="handleDownload"
-        @copyLink="handleCopyLink"
-        @delete="handleDelete"
-        @rename="handleRename"
-        @showLocation="handleShowLocation"
-        @preview="handlePreview"
-        @play="handlePlay"
-        @viewText="handleViewText"
-        @move="handleMove"
-        @share="handleShare"
-        @select="handleFileSelect"
-        @select-all="handleSelectAll"
-        class="file-list"
-      />
+      <div class="main-content">
+        <FileList
+          :files="files"
+          :loading="loading"
+          :selectedFiles="selectedFiles"
+          @download="handleDownload"
+          @copyLink="handleCopyLink"
+          @delete="handleDelete"
+          @rename="handleRename"
+          @showLocation="handleShowLocation"
+          @preview="handlePreview"
+          @play="handlePlay"
+          @viewText="handleViewText"
+          @move="handleMove"
+          @share="handleShare"
+          @select="handleFileSelect"
+          @select-all="handleSelectAll"
+        />
+
+        <Pagination
+          v-if="!loading"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="total"
+          :per-page="perPage"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        />
+      </div>
     </div>
 
     <ConfirmDialog ref="confirmDialog" />
@@ -77,9 +88,10 @@ import RenameDialog from '../components/common/RenameDialog.vue'
 import ImagePreview from '../components/common/ImagePreview.vue'
 import VideoPlayer from '../components/common/VideoPlayer.vue'
 import TextViewer from '../components/common/TextViewer.vue'
+import Pagination from '../components/common/Pagination.vue'
 import { useResource } from '../composables/useResource'
 import { useBatchOperation } from '../composables/useBatchOperation'
-import { getDownloadUrl } from '../api/resource'
+import { getDownloadUrl, downloadFile, downloadMultipleFiles } from '../api/resource'
 import { moveFile, batchDeleteFiles, batchMoveFiles } from '../api/file'
 
 const {
@@ -88,11 +100,14 @@ const {
   loading,
   selectedDirectory,
   searchQuery,
+  currentPage,
+  perPage,
+  total,
+  totalPages,
   loadFiles,
   loadDirectories,
   deleteFile,
   renameFile,
-  downloadFile,
   copyDownloadLink,
 } = useResource()
 
@@ -119,7 +134,7 @@ const currentFile = ref(null)
 const selectedFilesForMove = ref([])
 
 onMounted(async () => {
-  await Promise.all([loadDirectories(), loadFiles()])
+  await Promise.all([loadDirectories(), loadFiles(null, null, 1, perPage.value)])
 })
 
 // 扁平化目录树用于移动对话框
@@ -145,16 +160,25 @@ const flattenedDirectories = computed(() => {
 })
 
 const handleSearch = () => {
-  loadFiles(selectedDirectory.value, searchQuery.value)
+  loadFiles(selectedDirectory.value, searchQuery.value, 1, perPage.value)
 }
 
 const handleDirectorySelect = (path) => {
   selectedDirectory.value = path
-  loadFiles(path, searchQuery.value)
+  loadFiles(path, searchQuery.value, 1, perPage.value)
 }
 
 const refreshFiles = () => {
-  loadFiles(selectedDirectory.value, searchQuery.value)
+  loadFiles(selectedDirectory.value, searchQuery.value, currentPage.value, perPage.value)
+}
+
+// 分页处理
+const handlePageChange = (page) => {
+  loadFiles(selectedDirectory.value, searchQuery.value, page, perPage.value)
+}
+
+const handlePageSizeChange = (pageSize) => {
+  loadFiles(selectedDirectory.value, searchQuery.value, 1, pageSize)
 }
 
 // 文件选择处理
@@ -299,7 +323,7 @@ const handleMoveCancel = () => {
 // 分享文件
 const handleShare = (file) => {
   currentFile.value = file
-  shareDialog.value?.show()
+  shareDialog.value?.show(file)
 }
 
 const handleShareCancel = () => {
@@ -345,9 +369,7 @@ const handleBatchMove = (files) => {
 }
 
 const handleBatchDownload = (files) => {
-  files.forEach(file => {
-    downloadFile(file.id)
-  })
+  downloadMultipleFiles(files.map(f => f.id))
   showToast(`开始下载 ${files.length} 个文件`, 'success')
   clearSelection()
 }
@@ -392,10 +414,13 @@ const handleBatchDownload = (files) => {
   padding: 16px;
 }
 
-.file-list {
+.main-content {
   background: #fff;
   border-radius: 12px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 @media (max-width: 768px) {

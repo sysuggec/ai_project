@@ -21,10 +21,12 @@ class FileController
     {
         $directory = $request->query->get('directory');
         $search = $request->query->get('search');
+        $page = (int) ($request->query->get('page', 1));
+        $perPage = (int) ($request->query->get('perPage', 20));
 
-        $files = $this->fileService->getFiles($directory, $search);
+        $result = $this->fileService->getFiles($directory, $search, $page, $perPage);
 
-        return Response::success(['files' => $files]);
+        return Response::success($result);
     }
 
     public function download(Request $request, string $id): \Symfony\Component\HttpFoundation\Response

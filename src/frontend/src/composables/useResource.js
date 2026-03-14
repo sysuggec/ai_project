@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getFiles, getDirectories, deleteFile as deleteFileApi, renameFile as renameFileApi, downloadFile as downloadFileApi, getDownloadUrl } from '../api/resource'
+import { getFiles, getDirectories, deleteFile as deleteFileApi, renameFile as renameFileApi, getDownloadUrl } from '../api/resource'
 
 export function useResource() {
   const files = ref([])
@@ -7,15 +7,25 @@ export function useResource() {
   const loading = ref(false)
   const selectedDirectory = ref(null)
   const searchQuery = ref('')
+  const currentPage = ref(1)
+  const perPage = ref(20)
+  const total = ref(0)
+  const totalPages = ref(0)
 
-  const loadFiles = async (directory = null, search = null) => {
+  const loadFiles = async (directory = null, search = null, page = 1, pageSize = 20) => {
     loading.value = true
     try {
-      const result = await getFiles(directory, search)
+      const result = await getFiles(directory, search, page, pageSize)
       files.value = result.files || []
+      currentPage.value = page
+      perPage.value = pageSize
+      total.value = result.pagination?.total || 0
+      totalPages.value = result.pagination?.last_page || 0
     } catch (error) {
       console.error('加载文件失败', error)
       files.value = []
+      total.value = 0
+      totalPages.value = 0
     } finally {
       loading.value = false
     }
@@ -37,10 +47,6 @@ export function useResource() {
 
   const renameFile = async (id, name) => {
     await renameFileApi(id, name)
-  }
-
-  const downloadFile = (id) => {
-    downloadFileApi(id)
   }
 
   const copyDownloadLink = async (id) => {
@@ -74,11 +80,14 @@ export function useResource() {
     loading,
     selectedDirectory,
     searchQuery,
+    currentPage,
+    perPage,
+    total,
+    totalPages,
     loadFiles,
     loadDirectories,
     deleteFile,
     renameFile,
-    downloadFile,
     copyDownloadLink,
   }
 }

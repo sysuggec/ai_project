@@ -36,13 +36,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false,
-  },
   directories: {
     type: Array,
     default: () => [],
@@ -55,15 +51,9 @@ const props = defineProps({
 
 const emit = defineEmits(['confirm', 'cancel'])
 
+const visible = ref(false)
 const selectedDirectoryId = ref(null)
 const loading = ref(false)
-
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    // 重置选择
-    selectedDirectoryId.value = null
-  }
-})
 
 const selectDirectory = (id) => {
   selectedDirectoryId.value = id
@@ -72,12 +62,29 @@ const selectDirectory = (id) => {
 const handleConfirm = () => {
   if (selectedDirectoryId.value) {
     emit('confirm', selectedDirectoryId.value)
+    hide()
   }
 }
 
 const handleCancel = () => {
   emit('cancel')
+  hide()
 }
+
+const show = () => {
+  visible.value = true
+  selectedDirectoryId.value = null
+}
+
+const hide = () => {
+  visible.value = false
+}
+
+// 暴露方法给父组件
+defineExpose({
+  show,
+  hide
+})
 </script>
 
 <style scoped>
