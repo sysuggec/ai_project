@@ -42,3 +42,6 @@ src/frontend/node_modules/@rollup/rollup-*
 # Docker local config
 .env
 data/
+
+# CloudStudio backup
+.cloudstudio-backup/
