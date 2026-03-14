@@ -16,7 +16,10 @@ class Response
 
     public static function success(array $data = []): JsonResponse
     {
-        return self::json(array_merge(['success' => true], $data));
+        return self::json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     public static function error(string $message, int $status = 400): JsonResponse

@@ -50,7 +50,7 @@ defineEmits(['select'])
 
 const isExpanded = ref(true)
 
-const hasChildren = computed(() => props.item.children && props.item.children.length > 0)
+const hasChildren = computed(() => Array.isArray(props.item.children) && props.item.children.length > 0)
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value

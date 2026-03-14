@@ -1,5 +1,6 @@
 /**
  * 批量操作功能测试
+ * v1.1.0 新增功能
  */
 
 import { test, expect } from '@playwright/test';

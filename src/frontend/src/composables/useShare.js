@@ -16,16 +16,12 @@ export function useShare() {
   const createFileShare = async (fileId, expiresIn = 86400, password = null) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const response = await createShare(fileId, expiresIn, password)
-      if (response.success) {
-        currentShare.value = response.data
-        return { success: true, share: response.data }
-      } else {
-        error.value = response.error
-        return { success: false, error: response.error }
-      }
+      // 拦截器已经返回了 data 字段
+      currentShare.value = response
+      return { success: true, share: response }
     } catch (e) {
       error.value = e.message || '创建分享链接失败'
       return { success: false, error: e.message }
@@ -40,14 +36,11 @@ export function useShare() {
   const fetchShareList = async () => {
     loading.value = true
     error.value = null
-    
+
     try {
       const response = await getShareList()
-      if (response.success) {
-        shareList.value = response.data.shares
-      } else {
-        error.value = response.error
-      }
+      // 拦截器已经返回了 data 字段
+      shareList.value = response.shares || []
     } catch (e) {
       error.value = e.message || '获取分享列表失败'
     } finally {
@@ -61,13 +54,10 @@ export function useShare() {
   const deleteFileShare = async (id) => {
     try {
       const response = await deleteShare(id)
-      if (response.success) {
-        // 从列表中移除
-        shareList.value = shareList.value.filter(s => s.id !== id)
-        return { success: true, message: response.data.message }
-      } else {
-        return { success: false, error: response.error }
-      }
+      // 拦截器已经返回了 data 字段
+      // 从列表中移除
+      shareList.value = shareList.value.filter(s => s.id !== id)
+      return { success: true, message: response.message || '删除成功' }
     } catch (e) {
       return { success: false, error: e.message || '删除分享失败' }
     }
@@ -79,16 +69,12 @@ export function useShare() {
   const fetchShareInfo = async (token, password = null) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const response = await getShareInfo(token, password)
-      if (response.success) {
-        currentShare.value = response.data
-        return { success: true, info: response.data }
-      } else {
-        error.value = response.error
-        return { success: false, error: response.error }
-      }
+      // 拦截器已经返回了 data 字段
+      currentShare.value = response
+      return { success: true, info: response }
     } catch (e) {
       error.value = e.message || '获取分享信息失败'
       return { success: false, error: e.message }

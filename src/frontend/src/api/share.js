@@ -4,6 +4,22 @@ const api = axios.create({
   baseURL: '/api',
 })
 
+// 统一处理响应
+api.interceptors.response.use(
+  response => {
+    // 如果响应包含 success 字段且为 true，返回 data 字段
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      // 返回 data 字段，如果 data 不存在则返回整个 response.data
+      return response.data.data ?? response.data
+    }
+    return response.data
+  },
+  error => {
+    console.error('API Error:', error)
+    return Promise.reject(error)
+  }
+)
+
 /**
  * 创建分享链接
  * @param {number} fileId - 文件ID
@@ -16,7 +32,7 @@ export const createShare = async (fileId, expiresIn = 86400, password = null) =>
     expires_in: expiresIn,
     password,
   })
-  return response.data
+  return response
 }
 
 /**
@@ -28,7 +44,7 @@ export const getShareInfo = async (token, password = null) => {
   const response = await api.get(`/shares/${token}`, {
     params: password ? { password } : {},
   })
-  return response.data
+  return response
 }
 
 /**
@@ -36,7 +52,7 @@ export const getShareInfo = async (token, password = null) => {
  */
 export const getShareList = async () => {
   const response = await api.get('/shares')
-  return response.data
+  return response
 }
 
 /**
@@ -45,7 +61,7 @@ export const getShareList = async () => {
  */
 export const deleteShare = async (id) => {
   const response = await api.delete(`/shares/${id}`)
-  return response.data
+  return response
 }
 
 /**

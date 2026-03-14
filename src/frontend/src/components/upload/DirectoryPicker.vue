@@ -52,9 +52,10 @@ onMounted(async () => {
 const loadDirectories = async () => {
   try {
     const result = await getDirectories()
-    directories.value = result.directories || []
+    directories.value = result?.directories ?? []
   } catch (error) {
     console.error('加载目录失败', error)
+    directories.value = []
   }
 }
 

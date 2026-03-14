@@ -4,12 +4,28 @@ const api = axios.create({
   baseURL: '/api',
 })
 
+// 统一处理响应
+api.interceptors.response.use(
+  response => {
+    // 如果响应包含 success 字段且为 true，返回 data 字段
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      // 返回 data 字段，如果 data 不存在则返回整个 response.data
+      return response.data.data ?? response.data
+    }
+    return response.data
+  },
+  error => {
+    console.error('API Error:', error)
+    return Promise.reject(error)
+  }
+)
+
 /**
  * 获取回收站文件列表
  */
 export const getTrashList = async () => {
   const response = await api.get('/trash')
-  return response.data
+  return response
 }
 
 /**
@@ -18,7 +34,7 @@ export const getTrashList = async () => {
  */
 export const restoreFile = async (id) => {
   const response = await api.post(`/trash/${id}/restore`)
-  return response.data
+  return response
 }
 
 /**
@@ -27,7 +43,7 @@ export const restoreFile = async (id) => {
  */
 export const deletePermanently = async (id) => {
   const response = await api.delete(`/trash/${id}`)
-  return response.data
+  return response
 }
 
 /**
@@ -35,5 +51,5 @@ export const deletePermanently = async (id) => {
  */
 export const clearTrash = async () => {
   const response = await api.delete('/trash')
-  return response.data
+  return response
 }

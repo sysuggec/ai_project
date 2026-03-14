@@ -9,6 +9,8 @@ services:
     ports:
       - "${HOST_PORT:-8080}:80"
     volumes:
+      # 源代码挂载（开发模式）
+      - ./src/backend:/var/www/html
       # 上传文件持久化存储
       - ${UPLOAD_PATH:-./data/upload}:/data/upload
       # 数据库持久化存储

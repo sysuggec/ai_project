@@ -5,14 +5,30 @@ const api = axios.create({
   timeout: 0,
 })
 
+// 统一处理响应
+api.interceptors.response.use(
+  response => {
+    // 如果响应包含 success 字段且为 true，返回 data 字段
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      // 返回 data 字段，如果 data 不存在则返回整个 response.data
+      return response.data.data ?? response.data
+    }
+    return response.data
+  },
+  error => {
+    console.error('API Error:', error)
+    return Promise.reject(error)
+  }
+)
+
 export const checkHash = async (hash) => {
   const response = await api.post('/upload/check', { hash })
-  return response.data
+  return response
 }
 
 export const uploadFile = async (file, hash, directory, onProgress) => {
   const formData = new FormData()
-  
+
   // 只有在实际有文件时才添加文件
   if (file) {
     formData.append('file', file)
@@ -28,7 +44,7 @@ export const uploadFile = async (file, hash, directory, onProgress) => {
       'Content-Type': 'multipart/form-data',
     },
   }
-  
+
   // 只有在实际文件上传时才跟踪进度
   if (file && onProgress) {
     config.onUploadProgress = (e) => {
@@ -39,7 +55,7 @@ export const uploadFile = async (file, hash, directory, onProgress) => {
   }
 
   const response = await api.post('/upload/file', formData, config)
-  return response.data
+  return response
 }
 
 /**
@@ -56,12 +72,12 @@ export const instantUpload = async (fileName, hash, directory) => {
       'Content-Type': 'multipart/form-data',
     },
   })
-  return response.data
+  return response
 }
 
 export const uploadFolder = async (files, paths, directory) => {
   const formData = new FormData()
-  
+
   files.forEach((file, index) => {
     formData.append(`files[${index}]`, file)
     formData.append(`paths[${index}]`, paths[index])
@@ -73,12 +89,12 @@ export const uploadFolder = async (files, paths, directory) => {
       'Content-Type': 'multipart/form-data',
     },
   })
-  return response.data
+  return response
 }
 
 export const getUploadHistory = async (limit = 50, offset = 0) => {
   const response = await api.get('/upload/history', {
     params: { limit, offset },
   })
-  return response.data
+  return response
 }

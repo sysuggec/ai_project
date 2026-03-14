@@ -127,13 +127,14 @@ const flattenedDirectories = computed(() => {
   const result = []
 
   const flatten = (dirs, level = 0) => {
+    if (!Array.isArray(dirs)) return
     dirs.forEach(dir => {
       result.push({
         id: dir.id,
         name: '  '.repeat(level) + dir.name,
         path: dir.path,
       })
-      if (dir.children && dir.children.length > 0) {
+      if (Array.isArray(dir.children) && dir.children.length > 0) {
         flatten(dir.children, level + 1)
       }
     })
@@ -267,9 +268,12 @@ const handleMoveConfirm = async (targetDirectoryId) => {
         selectedFilesForMove.value.map(f => f.id),
         targetDirectoryId
       )
+      // 安全地访问响应数据
+      const successCount = result?.data?.success_count ?? result?.success_count ?? 0
+      const failedCount = result?.data?.failed_count ?? result?.failed_count ?? 0
       showToast(
-        `移动成功 ${result.data.success_count} 个，失败 ${result.data.failed_count} 个`,
-        result.data.failed_count > 0 ? 'warning' : 'success'
+        `移动成功 ${successCount} 个，失败 ${failedCount} 个`,
+        failedCount > 0 ? 'warning' : 'success'
       )
       clearSelection()
       selectedFilesForMove.value = []
@@ -318,9 +322,12 @@ const handleBatchDelete = async (files) => {
   if (confirmed) {
     try {
       const result = await batchDeleteFiles(files.map(f => f.id))
+      // 安全地访问响应数据
+      const successCount = result?.data?.success_count ?? result?.success_count ?? 0
+      const failedCount = result?.data?.failed_count ?? result?.failed_count ?? 0
       showToast(
-        `删除成功 ${result.data.success_count} 个，失败 ${result.data.failed_count} 个`,
-        result.data.failed_count > 0 ? 'warning' : 'success'
+        `删除成功 ${successCount} 个，失败 ${failedCount} 个`,
+        failedCount > 0 ? 'warning' : 'success'
       )
       clearSelection()
       refreshFiles()

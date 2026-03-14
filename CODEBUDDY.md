@@ -86,6 +86,8 @@ cd playwright && npm run report        # 查看测试报告
 
 - **技术方案**: `docs/solution.md` - 架构设计、API 设计、数据库设计、组件结构
 - **部署指南**: `docs/deployment.md` - 环境要求、Nginx 配置、生产部署、常见问题
+- **更新日志**: `docs/changelog.md` - 项目更新记录、bug 修复、技术改进
+- **版本路线图**: `docs/roadmap.md` - 功能规划、版本计划、API 扩展
 - **测试文档**: `test/README.md` - 测试报告、测试脚本说明
 - **E2E 测试**: `playwright/README.md` - Playwright 端到端测试说明
 - **PHP 代码规范**: 参考 `.codebuddy/rules/coding-style` 中的 PHP 规范

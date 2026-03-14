@@ -82,6 +82,56 @@ cd playwright && npm install && npm test
 
 测试覆盖：37 个测试用例，100% 通过率
 
+## 常见问题
+
+### 页面加载失败或数据不显示？
+
+如果页面加载失败或数据不显示，可能是浏览器缓存问题：
+
+1. **强制刷新浏览器缓存**：
+   - Windows/Linux: `Ctrl + F5` 或 `Ctrl + Shift + R`
+   - Mac: `Cmd + Shift + R`
+
+2. **重新构建并部署**：
+   ```bash
+   ./deploy.sh rebuild
+   ```
+
+3. **清除浏览器缓存**：
+   - 打开浏览器开发者工具 (F12)
+   - 右键点击刷新按钮，选择"清空缓存并硬性重新加载"
+
+### Docker 部署后前端代码不是最新？
+
+如果 Docker 部署后前端代码不是最新版本：
+
+```bash
+# 清理本地构建产物并重新部署
+rm -rf src/backend/public/assets/*
+./deploy.sh rebuild
+```
+
+### API 请求失败？
+
+检查服务状态：
+
+```bash
+# 查看服务状态
+./deploy.sh status
+
+# 查看日志
+./deploy.sh logs
+
+# 检查 API 是否正常
+curl http://localhost:8080/api/files
+```
+
+更多问题请参考 [部署指南](docs/deployment.md) 中的常见问题部分。
+
+## 更新日志
+
+详细的更新记录请查看 [更新日志](docs/changelog.md)。
+
 ## 许可证
 
 MIT
