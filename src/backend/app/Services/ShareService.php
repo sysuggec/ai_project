@@ -46,7 +46,7 @@ class ShareService
         $token = $this->generateToken();
 
         // 计算过期时间
-        $expiresAt = now()->addSeconds($expiresIn);
+        $expiresAt = (new \DateTime())->add(new \DateInterval("PT{$expiresIn}S"));
 
         // 加密密码（如果有）
         $hashedPassword = null;
@@ -54,12 +54,16 @@ class ShareService
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
         }
 
+        // 获取当前时间
+        $createdAt = new \DateTime();
+
         // 创建分享记录
         $share = ShareModel::create([
             'file_id' => $fileId,
             'token' => $token,
             'password' => $hashedPassword,
             'expires_at' => $expiresAt,
+            'created_at' => $createdAt,
         ]);
 
         return [
@@ -164,22 +168,40 @@ class ShareService
     /**
      * 获取用户的分享列表
      *
+     * @param int $page 页码（从 1 开始）
+     * @param int $perPage 每页数量
      * @return array 分享列表
      */
-    public function getList(): array
+    public function getList(int $page = 1, int $perPage = 20): array
     {
-        $shares = ShareModel::with('file')->orderBy('created_at', 'desc')->get();
+        $query = ShareModel::with('file')->orderBy('created_at', 'desc');
 
-        return $shares->map(function ($share) {
+        $total = $query->count();
+
+        $shares = $query->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->get();
+
+        $data = $shares->map(function ($share) {
             $expiresAt = $share->expires_at;
             $createdAt = $share->created_at;
-            
+
+            // 格式化过期时间
             if ($expiresAt instanceof \DateTimeInterface) {
                 $expiresAt = $expiresAt->format('Y-m-d H:i:s');
+            } elseif (is_string($expiresAt)) {
+                $expiresAt = $expiresAt;
+            } else {
+                $expiresAt = '';
             }
-            
+
+            // 格式化创建时间
             if ($createdAt instanceof \DateTimeInterface) {
                 $createdAt = $createdAt->format('Y-m-d H:i:s');
+            } elseif (is_string($createdAt)) {
+                $createdAt = $createdAt;
+            } else {
+                $createdAt = '';
             }
 
             return [
@@ -193,6 +215,14 @@ class ShareService
                 'has_password' => $share->hasPassword(),
             ];
         })->toArray();
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => (int) ceil($total / $perPage),
+        ];
     }
 
     /**

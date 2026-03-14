@@ -55,6 +55,17 @@
           </button>
         </span>
       </div>
+
+      <div class="pagination-wrapper">
+        <Pagination
+          :current-page="pagination.page"
+          :total-pages="pagination.totalPages"
+          :total="pagination.total"
+          :per-page="pagination.perPage"
+          @page-change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -63,8 +74,9 @@
 import { onMounted } from 'vue'
 import { useShare } from '@/composables/useShare'
 import { useToast } from '@/composables/useToast'
+import Pagination from '@/components/common/Pagination.vue'
 
-const { shareList, loading, error, fetchShareList, deleteShare } = useShare()
+const { shareList, loading, error, pagination, fetchShareList, deleteShare } = useShare()
 const { showToast } = useToast()
 
 onMounted(() => {
@@ -72,13 +84,19 @@ onMounted(() => {
 })
 
 const handleRefresh = () => {
-  fetchShareList()
+  fetchShareList(pagination.page, pagination.perPage)
 }
 
 const handleDeleteShare = async (id) => {
   const result = await deleteShare(id)
   if (result.success) {
     showToast(result.message || '分享已删除', 'success')
+    // 如果当前页数据为空且不是第一页，返回上一页
+    if (shareList.value.length === 1 && pagination.page > 1) {
+      fetchShareList(pagination.page - 1, pagination.perPage)
+    } else {
+      fetchShareList(pagination.page, pagination.perPage)
+    }
   } else {
     showToast(result.error || '删除失败', 'error')
   }
@@ -92,6 +110,14 @@ const copyShareLink = async (token) => {
   } catch (e) {
     showToast('复制失败，请手动复制', 'error')
   }
+}
+
+const handlePageChange = (page) => {
+  fetchShareList(page, pagination.perPage)
+}
+
+const handlePageSizeChange = (pageSize) => {
+  fetchShareList(1, pageSize)
 }
 
 const formatDate = (dateStr) => {
@@ -230,5 +256,11 @@ const isExpired = (expiresAt) => {
 
 .error {
   color: #d32f2f;
+}
+
+.pagination-wrapper {
+  padding: 16px;
+  background: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
 }
 </style>

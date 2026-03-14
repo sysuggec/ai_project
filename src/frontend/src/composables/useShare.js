@@ -10,6 +10,14 @@ export function useShare() {
   const loading = ref(false)
   const error = ref(null)
 
+  // 分页参数
+  const pagination = ref({
+    page: 1,
+    perPage: 20,
+    total: 0,
+    totalPages: 0
+  })
+
   /**
    * 创建分享链接
    */
@@ -33,14 +41,20 @@ export function useShare() {
   /**
    * 获取分享列表
    */
-  const fetchShareList = async () => {
+  const fetchShareList = async (page = 1, perPage = 20) => {
     loading.value = true
     error.value = null
 
     try {
-      const response = await getShareList()
+      const response = await getShareList(page, perPage)
       // 拦截器已经返回了 data 字段
-      shareList.value = response.shares || []
+      shareList.value = Array.isArray(response.data) ? response.data : []
+      pagination.value = {
+        page: response.page || 1,
+        perPage: response.perPage || 20,
+        total: response.total || 0,
+        totalPages: response.totalPages || 0
+      }
     } catch (e) {
       error.value = e.message || '获取分享列表失败'
     } finally {
@@ -57,6 +71,10 @@ export function useShare() {
       // 拦截器已经返回了 data 字段
       // 从列表中移除
       shareList.value = shareList.value.filter(s => s.id !== id)
+      // 更新总数
+      if (pagination.value.total > 0) {
+        pagination.value.total--
+      }
       return { success: true, message: response.message || '删除成功' }
     } catch (e) {
       return { success: false, error: e.message || '删除分享失败' }
@@ -76,8 +94,10 @@ export function useShare() {
       currentShare.value = response
       return { success: true, info: response }
     } catch (e) {
-      error.value = e.message || '获取分享信息失败'
-      return { success: false, error: e.message }
+      // 从响应中获取错误信息
+      const errorMessage = e.responseData?.error || e.message || '获取分享信息失败'
+      error.value = errorMessage
+      return { success: false, error: errorMessage }
     } finally {
       loading.value = false
     }
@@ -95,6 +115,7 @@ export function useShare() {
     currentShare,
     loading,
     error,
+    pagination,
     createShare: createFileShare,
     fetchShareList,
     deleteShare: deleteFileShare,

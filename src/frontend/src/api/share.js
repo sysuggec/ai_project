@@ -7,15 +7,30 @@ const api = axios.create({
 // 统一处理响应
 api.interceptors.response.use(
   response => {
-    // 如果响应包含 success 字段且为 true，返回 data 字段
+    // 如果响应包含 success 字段
     if (response.data && typeof response.data === 'object' && 'success' in response.data) {
-      // 返回 data 字段，如果 data 不存在则返回整个 response.data
+      // 如果 success 为 false，抛出错误
+      if (response.data.success === false) {
+        const error = new Error(response.data.error || '请求失败')
+        error.response = response
+        error.responseData = response.data
+        return Promise.reject(error)
+      }
+      // 返回 data 字段
       return response.data.data ?? response.data
     }
     return response.data
   },
   error => {
     console.error('API Error:', error)
+    // 如果错误响应中包含 success: false，提取错误信息
+    if (error.response && error.response.data) {
+      const data = error.response.data
+      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        error.responseData = data
+        error.message = data.error || error.message
+      }
+    }
     return Promise.reject(error)
   }
 )
@@ -49,9 +64,13 @@ export const getShareInfo = async (token, password = null) => {
 
 /**
  * 获取分享列表
+ * @param {number} page - 页码
+ * @param {number} perPage - 每页数量
  */
-export const getShareList = async () => {
-  const response = await api.get('/shares')
+export const getShareList = async (page = 1, perPage = 20) => {
+  const response = await api.get('/shares', {
+    params: { page, perPage }
+  })
   return response
 }
 

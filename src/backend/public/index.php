@@ -6,7 +6,11 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Middleware\CorsMiddleware;
 
+// 设置 PHP 时区（与 Docker TZ 环境变量保持一致）
+date_default_timezone_set(getenv('TZ') ?: 'Asia/Shanghai');
+
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../app/helpers.php';
 
 $requestUri = $_SERVER['REQUEST_URI'];
 $requestPath = parse_url($requestUri, PHP_URL_PATH);

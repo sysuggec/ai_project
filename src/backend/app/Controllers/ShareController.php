@@ -51,9 +51,16 @@ class ShareController
      */
     public function index(Request $request): \Symfony\Component\HttpFoundation\Response
     {
-        $shares = $this->shareService->getList();
+        $page = (int) ($request->query->get('page') ?? 1);
+        $perPage = (int) ($request->query->get('perPage') ?? 20);
 
-        return Response::success(['shares' => $shares]);
+        // 验证参数
+        if ($page < 1) $page = 1;
+        if ($perPage < 1 || $perPage > 100) $perPage = 20;
+
+        $result = $this->shareService->getList($page, $perPage);
+
+        return Response::success($result);
     }
 
     /**

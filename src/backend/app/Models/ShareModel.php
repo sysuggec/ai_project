@@ -14,19 +14,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ShareModel extends Model
 {
     protected $table = 'shares';
-    
+
+    public $timestamps = false;
+
     protected $fillable = [
         'file_id',
         'token',
         'password',
         'expires_at',
+        'created_at',
         'download_count',
     ];
-    
+
     protected $casts = [
         'file_id' => 'integer',
         'download_count' => 'integer',
         'expires_at' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     /**
@@ -45,8 +49,9 @@ class ShareModel extends Model
         if ($this->expires_at === null) {
             return false;
         }
-        
-        return now()->isAfter($this->expires_at);
+
+        $now = new \DateTime();
+        return $now > $this->expires_at;
     }
 
     /**
