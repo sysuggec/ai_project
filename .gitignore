@@ -45,3 +45,4 @@ data/
 
 # CloudStudio backup
 .cloudstudio-backup/
+.cargo/
