@@ -25,10 +25,30 @@
 
 ## 快速开始
 
-### Docker 一键部署
+### Docker 部署
+
+#### 开发模式（推荐日常开发）
 
 ```bash
-# 一键启动（自动检测并构建基础镜像）
+# 开发模式启动（代码实时生效，无需重启容器）
+./deploy.sh start --mode dev
+
+# 修改后端代码后直接生效，修改前端代码需重新构建
+cd src/frontend && npm run build
+
+# 查看日志
+./deploy.sh logs --mode dev
+```
+
+**开发模式特点**：
+- 源代码挂载到容器，修改后立即可见
+- 适合快速迭代和调试
+- 修改前端代码后需要重新构建
+
+#### 生产模式（部署发布）
+
+```bash
+# 生产模式启动（使用缓存镜像，启动更快）
 ./deploy.sh start
 
 # 自定义端口
@@ -41,6 +61,13 @@
 ./deploy.sh stop       # 停止服务
 ./deploy.sh logs       # 查看日志
 ```
+
+**生产模式特点**：
+- 使用 `Dockerfile.cached` 加速构建
+- 代码打包到镜像中，更稳定
+- 适合生产环境部署
+
+更多部署命令请参考 [部署指南](docs/deployment.md)。
 
 ### 本地开发
 
@@ -84,6 +111,11 @@ cd playwright && npm install && npm test
 
 ## 常见问题
 
+### 开发模式 vs 生产模式如何选择？
+
+- **开发模式** (`--mode dev`)：日常开发使用，修改代码后立即可见
+- **生产模式** (`--mode prod` 或默认)：生产环境部署，代码打包到镜像
+
 ### 页面加载失败或数据不显示？
 
 如果页面加载失败或数据不显示，可能是浏览器缓存问题：
@@ -94,7 +126,8 @@ cd playwright && npm install && npm test
 
 2. **重新构建并部署**：
    ```bash
-   ./deploy.sh rebuild
+   ./deploy.sh rebuild --mode dev    # 开发模式
+   ./deploy.sh rebuild --mode prod   # 生产模式
    ```
 
 3. **清除浏览器缓存**：
@@ -106,7 +139,10 @@ cd playwright && npm install && npm test
 如果 Docker 部署后前端代码不是最新版本：
 
 ```bash
-# 清理本地构建产物并重新部署
+# 开发模式：前端代码修改后需要重新构建
+cd src/frontend && npm run build
+
+# 生产模式：清理本地构建产物并重新部署
 rm -rf src/backend/public/assets/*
 ./deploy.sh rebuild
 ```

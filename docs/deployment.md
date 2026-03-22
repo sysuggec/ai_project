@@ -61,28 +61,109 @@ npm run build
 
 ## 3. Docker 一键部署
 
-### 3.1 快速开始
+### 3.1 部署模式选择
+
+部署脚本支持两种模式：**开发模式** 和 **生产模式**。
+
+#### 开发模式（`--mode dev`）
+
+适用场景：日常开发、快速迭代、代码调试
 
 ```bash
-# 一键启动（自动检测并构建基础镜像）
+# 启动开发环境
+./deploy.sh start --mode dev
+
+# 自定义端口
+./deploy.sh start --mode dev -p 9000
+
+# 查看日志
+./deploy.sh logs --mode dev
+
+# 停止服务
+./deploy.sh stop --mode dev
+```
+
+**开发模式特点**：
+- 源代码挂载到容器 `./src/backend:/var/www/html`
+- 修改后端代码后立即生效，无需重启容器
+- 修改前端代码后需要在 `src/frontend/` 目录执行 `npm run build`
+- 容器名称：`resource-system-dev`
+
+**使用建议**：
+- 适合本地开发，代码修改后立即可见
+- 前端开发时，可以先单独运行 `npm run dev` 进行热重载
+- 后端开发时，修改 PHP 代码后刷新浏览器即可看到效果
+
+#### 生产模式（`--mode prod` 或默认）
+
+适用场景：生产环境、测试环境、稳定部署
+
+```bash
+# 启动生产环境（默认模式）
 ./deploy.sh start
 
-# 自定义端口和存储目录
-./deploy.sh start -p 9000 -u /data/upload -d /data/db
+# 显式指定生产模式
+./deploy.sh start --mode prod
 
-# 其他命令
-./deploy.sh stop       # 停止服务
-./deploy.sh restart    # 重启服务
-./deploy.sh rebuild    # 重新构建并启动
-./deploy.sh reset      # 重置所有数据并重新部署
-./deploy.sh logs       # 查看日志
-./deploy.sh status     # 查看状态
-./deploy.sh clean      # 清理容器和镜像
+# 自定义端口
+./deploy.sh start -p 9000
+
+# 查看日志
+./deploy.sh logs
+
+# 停止服务
+./deploy.sh stop
+```
+
+**生产模式特点**：
+- 使用 `Dockerfile.cached` 多阶段构建
+- 代码打包到镜像中，部署更稳定
+- 使用预构建的基础镜像加速构建（~30秒）
+- 容器名称：`resource-system`
+
+**使用建议**：
+- 适合生产环境部署
+- 代码更新后需要重新构建镜像
+- 多次部署不会重复安装系统依赖
+
+#### 命令对比
+
+| 命令 | 开发模式 | 生产模式 |
+|------|---------|---------|
+| 启动 | `./deploy.sh start --mode dev` | `./deploy.sh start` |
+| 停止 | `./deploy.sh stop --mode dev` | `./deploy.sh stop` |
+| 重启 | `./deploy.sh restart --mode dev` | `./deploy.sh restart` |
+| 重建 | `./deploy.sh rebuild --mode dev` | `./deploy.sh rebuild` |
+| 日志 | `./deploy.sh logs --mode dev` | `./deploy.sh logs` |
+| 状态 | `./deploy.sh status --mode dev` | `./deploy.sh status` |
+
+### 3.2 完整命令列表
+
+```bash
+# 开发模式命令
+./deploy.sh start --mode dev           # 启动开发环境
+./deploy.sh stop --mode dev            # 停止开发环境
+./deploy.sh restart --mode dev         # 重启开发环境
+./deploy.sh rebuild --mode dev         # 重建开发环境
+./deploy.sh logs --mode dev            # 查看开发环境日志
+./deploy.sh status --mode dev          # 查看开发环境状态
+
+# 生产模式命令（默认）
+./deploy.sh start                      # 启动生产环境
+./deploy.sh stop                       # 停止生产环境
+./deploy.sh restart                    # 重启生产环境
+./deploy.sh rebuild                    # 重建生产环境
+./deploy.sh logs                       # 查看生产环境日志
+./deploy.sh status                     # 查看生产环境状态
+./deploy.sh build-base                 # 构建基础镜像
+./deploy.sh reset                      # 重置所有数据并重新部署
+./deploy.sh clean                      # 清理容器和镜像
+./deploy.sh help                       # 显示帮助信息
 ```
 
 > **注意**：`start` 命令会自动检测基础镜像是否存在，不存在则自动构建。首次部署和后续更新都是一条命令搞定。
 
-### 3.2 构建流程说明
+### 3.3 构建流程说明
 
 Docker 镜像采用多阶段构建：
 
@@ -95,7 +176,7 @@ Docker 镜像采用多阶段构建：
 - `index.php` 会被单独复制，确保 PHP 入口文件存在
 - 前端构建产物从 `/app/backend/public` 复制，而非 `/app/frontend/dist`
 
-### 3.3 加速构建（基础镜像方案）
+### 3.4 加速构建（基础镜像方案）
 
 为避免每次构建都安装系统依赖，系统采用基础镜像方案。**`start` 命令会自动检测基础镜像**，无需手动构建。
 
@@ -151,7 +232,7 @@ services:
 | `./deploy.sh rebuild --no-cache` | 强制完全重建（不重建基础镜像） |
 | `./deploy.sh build-base` | 手动构建/更新基础镜像 |
 
-### 3.4 数据持久化注意事项
+### 3.5 数据持久化注意事项
 
 **重要**：Docker 部署使用卷映射持久化数据，这意味着：
 
@@ -164,7 +245,7 @@ services:
 ./deploy.sh reset
 ```
 
-### 3.5 环境配置
+### 3.6 环境配置
 
 复制 `.env.docker` 为 `.env` 并根据需要修改：
 
@@ -184,7 +265,7 @@ PHP_POST_MAX_SIZE=0
 PHP_MAX_EXECUTION_TIME=0
 ```
 
-### 3.6 数据卷映射
+### 3.7 数据卷映射
 
 Docker 部署通过卷映射实现数据持久化：
 
@@ -193,10 +274,28 @@ Docker 部署通过卷映射实现数据持久化：
 | `/data/upload` | `./data/upload` | 上传文件存储 |
 | `/var/www/html/storage` | `./data/db` | SQLite 数据库 |
 
-### 3.7 Docker Compose 手动操作
+### 3.8 Docker Compose 手动操作
+
+#### 开发模式
 
 ```bash
-# 构建并启动
+# 构建并启动开发环境
+docker compose -f docker-compose.dev.yml up -d
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f
+
+# 停止服务
+docker compose -f docker-compose.dev.yml down
+
+# 重新构建
+docker compose -f docker-compose.dev.yml build --no-cache
+```
+
+#### 生产模式
+
+```bash
+# 构建并启动生产环境
 docker compose up -d
 
 # 查看日志
@@ -208,6 +307,13 @@ docker compose down
 # 重新构建
 docker compose build --no-cache
 ```
+
+#### 配置文件说明
+
+| 配置文件 | 用途 | 源码挂载 | 基础镜像 |
+|---------|------|---------|---------|
+| `docker-compose.yml` | 生产环境 | ❌ | ✅ 使用 `Dockerfile.cached` |
+| `docker-compose.dev.yml` | 开发环境 | ✅ 挂载 `./src/backend` | ❌ 使用 `Dockerfile` |
 
 ---
 
@@ -363,6 +469,35 @@ A: 秒传依赖 Web Crypto API，需要安全上下文：
 1. 生产环境配置 HTTPS（推荐）
 2. 开发环境使用 localhost 访问
 3. 如需局域网访问秒传功能，配置自签名证书
+
+### Q: 开发模式和生产模式如何选择？
+A: 根据使用场景选择：
+
+| 场景 | 推荐模式 | 理由 |
+|------|---------|------|
+| 日常开发 | `--mode dev` | 代码修改后立即可见，无需重建镜像 |
+| 生产部署 | 默认或 `--mode prod` | 使用缓存镜像，部署更稳定 |
+| 测试环境 | `--mode prod` | 模拟生产环境，避免开发配置干扰 |
+| 快速调试 | `--mode dev` | 无需等待构建，直接修改代码 |
+
+### Q: 开发模式下修改前端代码不生效？
+A: 开发模式只挂载后端代码，前端代码需要重新构建：
+
+```bash
+# 前端开发时建议使用 Vite 开发服务器
+cd src/frontend
+npm run dev  # 热重载，修改立即可见
+
+# 或修改后重新构建
+npm run build
+```
+
+### Q: 如何在生产环境测试新功能？
+A: 建议流程：
+
+1. 开发模式完成开发：`./deploy.sh start --mode dev`
+2. 生产模式测试：`./deploy.sh start --mode prod`
+3. 确认无误后提交代码
 
 ---
 

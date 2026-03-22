@@ -30,13 +30,19 @@ cd src/frontend && npm run build
 cd src/backend && composer install
 cd src/frontend && npm install
 
-# Docker 一键部署
-./deploy.sh start                    # 一键启动（自动检测基础镜像）
-./deploy.sh start -p 9000            # 自定义端口
-./deploy.sh rebuild                  # 代码更新后重建（~30秒）
-./deploy.sh build-base               # 手动更新基础镜像
-./deploy.sh stop                     # 停止服务
-./deploy.sh logs                     # 查看日志
+# Docker 开发模式（代码实时生效）
+./deploy.sh start --mode dev          # 挂载源代码，修改后立即可见
+./deploy.sh logs --mode dev           # 查看开发环境日志
+./deploy.sh stop --mode dev           # 停止开发环境
+
+# Docker 生产模式（默认）
+./deploy.sh start                     # 一键启动（自动检测基础镜像）
+./deploy.sh start --mode prod         # 显式指定生产模式
+./deploy.sh start -p 9000             # 自定义端口
+./deploy.sh rebuild                   # 代码更新后重建（~30秒）
+./deploy.sh build-base                # 手动更新基础镜像
+./deploy.sh stop                      # 停止服务
+./deploy.sh logs                      # 查看日志
 
 # E2E 测试
 cd playwright && npm install           # 首次安装测试依赖
@@ -44,6 +50,20 @@ cd playwright && npm test              # 运行所有测试
 cd playwright && npm run test:ui       # UI 模式运行测试
 cd playwright && npm run report        # 查看测试报告
 ```
+
+### 部署模式说明
+
+**开发模式** (`--mode dev`)：
+- 源代码挂载到容器 `./src/backend:/var/www/html`
+- 修改后端代码后立即生效，无需重启
+- 修改前端代码需重新构建：`cd src/frontend && npm run build`
+- 适合日常开发和快速调试
+
+**生产模式** (`--mode prod` 或默认)：
+- 使用 `Dockerfile.cached` 多阶段构建
+- 代码打包到镜像中，部署更稳定
+- 使用预构建基础镜像加速构建
+- 适合生产环境部署
 
 ## 架构要点
 

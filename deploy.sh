@@ -17,6 +17,7 @@ NC='\033[0m' # No Color
 DEFAULT_PORT=8080
 DEFAULT_UPLOAD_PATH="./data/upload"
 DEFAULT_DB_PATH="./data/db"
+DEFAULT_ENV="prod"  # 默认生产环境
 
 # 打印带颜色的信息
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -47,15 +48,18 @@ show_help() {
     -p, --port PORT           宿主机端口 (默认: $DEFAULT_PORT)
     -u, --upload PATH         上传文件存储路径 (默认: $DEFAULT_UPLOAD_PATH)
     -d, --db PATH             数据库存储路径 (默认: $DEFAULT_DB_PATH)
+    -m, --mode MODE           部署模式: dev 或 prod (默认: $DEFAULT_ENV)
     -e, --env FILE            环境配置文件 (默认: .env)
     --no-cache                强制重新构建（不使用缓存）
 
 示例:
-    $0 start                          # 使用默认配置启动
-    $0 start -p 9000                  # 使用端口 9000 启动
-    $0 start -p 9000 -u /data/upload  # 自定义端口和上传目录
+    $0 start                          # 生产模式启动（默认）
+    $0 start --mode dev               # 开发模式启动（挂载源代码，实时生效）
+    $0 start --mode prod              # 生产模式启动（使用缓存镜像）
+    $0 start -p 9000 --mode dev       # 开发模式，自定义端口
     $0 build-base                     # 构建基础镜像（首次部署或系统依赖更新时执行）
     $0 rebuild                        # 重新构建并启动
+    $0 rebuild --mode dev             # 重新构建并启动开发模式
     $0 rebuild --no-cache             # 强制重新构建（不使用缓存）
     $0 reset                          # 重置所有数据并重新部署
     $0 stop                           # 停止服务
@@ -89,6 +93,16 @@ get_compose_cmd() {
     fi
 }
 
+# 获取 docker-compose 文件
+get_compose_file() {
+    local mode=$1
+    if [[ "$mode" == "dev" ]]; then
+        echo "-f docker-compose.dev.yml"
+    else
+        echo "-f docker-compose.yml"
+    fi
+}
+
 # 创建必要的目录
 create_directories() {
     local upload_path=$1
@@ -117,19 +131,22 @@ start_service() {
     local upload_path=$2
     local db_path=$3
     local env_file=$4
+    local mode=$5
 
-    info "开始部署资源上传下载系统..."
+    info "开始部署资源上传下载系统（${mode} 模式）..."
     echo ""
 
     # 检查环境
     check_docker
 
-    # 自动检测基础镜像
-    if ! docker image inspect resource-system-base:latest &>/dev/null; then
-        warn "基础镜像不存在，正在自动构建..."
-        echo ""
-        build_base
-        echo ""
+    # 生产模式需要检查基础镜像
+    if [[ "$mode" == "prod" ]]; then
+        if ! docker image inspect resource-system-base:latest &>/dev/null; then
+            warn "基础镜像不存在，正在自动构建..."
+            echo ""
+            build_base
+            echo ""
+        fi
     fi
 
     # 创建目录
@@ -145,20 +162,26 @@ PHP_POST_MAX_SIZE=0
 PHP_MAX_EXECUTION_TIME=0
 EOF
 
+    # 获取 compose 命令和文件
+    local compose_cmd=$(get_compose_cmd)
+    local compose_file=$(get_compose_file "$mode")
+
     info "配置信息:"
+    echo "  - 部署模式: $mode"
     echo "  - 端口映射: $port -> 80"
     echo "  - 上传目录: $upload_path"
     echo "  - 数据库目录: $db_path"
+    if [[ "$mode" == "dev" ]]; then
+        echo "  - 源代码: 已挂载（实时生效）"
+    fi
     echo ""
 
     # 构建 and 启动
-    local compose_cmd=$(get_compose_cmd)
-
     info "构建 Docker 镜像..."
-    $compose_cmd build $NO_CACHE
+    $compose_cmd $compose_file build $NO_CACHE
 
     info "启动服务..."
-    $compose_cmd up -d
+    $compose_cmd $compose_file up -d
 
     echo ""
     success "部署完成!"
@@ -166,34 +189,46 @@ EOF
     echo "访问地址: http://localhost:$port"
     echo ""
     echo "常用命令:"
-    echo "  查看日志: $compose_cmd logs -f"
-    echo "  停止服务: $compose_cmd down"
-    echo "  重启服务: $compose_cmd restart"
+    echo "  查看日志: $compose_cmd $compose_file logs -f"
+    echo "  停止服务: $compose_cmd $compose_file down"
+    echo "  重启服务: $compose_cmd $compose_file restart"
+    if [[ "$mode" == "dev" ]]; then
+        echo ""
+        echo "开发提示:"
+        echo "  修改 src/backend/ 代码后自动生效，无需重启容器"
+        echo "  前端代码修改后需要在 src/frontend/ 目录执行: npm run build"
+    fi
 }
 
 # 停止服务
 stop_service() {
-    info "停止服务..."
+    local mode=$1
+    info "停止服务（${mode} 模式）..."
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd down
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file down
     success "服务已停止"
 }
 
 # 重启服务
 restart_service() {
-    info "重启服务..."
+    local mode=$1
+    info "重启服务（${mode} 模式）..."
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd restart
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file restart
     success "服务已重启"
 }
 
 # 重新构建
 rebuild_service() {
-    info "重新构建服务..."
+    local mode=$1
+    info "重新构建服务（${mode} 模式）..."
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd down
-    $compose_cmd build $NO_CACHE
-    $compose_cmd up -d
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file down
+    $compose_cmd $compose_file build $NO_CACHE
+    $compose_cmd $compose_file up -d
     success "重新构建完成"
 }
 
@@ -209,14 +244,18 @@ build_base() {
 
 # 查看日志
 view_logs() {
+    local mode=$1
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd logs -f
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file logs -f
 }
 
 # 查看状态
 view_status() {
+    local mode=$1
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd ps
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file ps
 }
 
 # 清理
@@ -237,6 +276,9 @@ clean() {
 reset_data() {
     local upload_path=$1
     local db_path=$2
+    local port=$3
+    local env_file=$4
+    local mode=$5
 
     warn "⚠️  这将删除所有数据（数据库和上传文件），是否继续? [y/N]"
     read -r response
@@ -247,7 +289,8 @@ reset_data() {
 
     info "停止服务..."
     local compose_cmd=$(get_compose_cmd)
-    $compose_cmd down 2>/dev/null || true
+    local compose_file=$(get_compose_file "$mode")
+    $compose_cmd $compose_file down 2>/dev/null || true
 
     info "清理数据目录..."
 
@@ -270,7 +313,7 @@ reset_data() {
     fi
 
     info "重新部署..."
-    start_service "$3" "$1" "$2" "$4"
+    start_service "$port" "$upload_path" "$db_path" "$env_file" "$mode"
 }
 
 # 解析参数
@@ -280,6 +323,7 @@ parse_args() {
     UPLOAD_PATH=$DEFAULT_UPLOAD_PATH
     DB_PATH=$DEFAULT_DB_PATH
     ENV_FILE=".env"
+    MODE=$DEFAULT_ENV
     NO_CACHE=""
 
     while [[ $# -gt 0 ]]; do
@@ -298,6 +342,13 @@ parse_args() {
                 ;;
             -d|--db)
                 DB_PATH="$2"
+                shift 2
+                ;;
+            -m|--mode)
+                MODE="$2"
+                if [[ "$MODE" != "dev" && "$MODE" != "prod" ]]; then
+                    error "无效的部署模式: $MODE (必须是 dev 或 prod)"
+                fi
                 shift 2
                 ;;
             -e|--env)
@@ -331,28 +382,28 @@ main() {
 
     case $COMMAND in
         start)
-            start_service "$PORT" "$UPLOAD_PATH" "$DB_PATH" "$ENV_FILE"
+            start_service "$PORT" "$UPLOAD_PATH" "$DB_PATH" "$ENV_FILE" "$MODE"
             ;;
         stop)
-            stop_service
+            stop_service "$MODE"
             ;;
         restart)
-            restart_service
+            restart_service "$MODE"
             ;;
         rebuild)
-            rebuild_service
+            rebuild_service "$MODE"
             ;;
         build-base)
             build_base
             ;;
         reset)
-            reset_data "$UPLOAD_PATH" "$DB_PATH" "$PORT" "$ENV_FILE"
+            reset_data "$UPLOAD_PATH" "$DB_PATH" "$PORT" "$ENV_FILE" "$MODE"
             ;;
         logs)
-            view_logs
+            view_logs "$MODE"
             ;;
         status)
-            view_status
+            view_status "$MODE"
             ;;
         clean)
             clean

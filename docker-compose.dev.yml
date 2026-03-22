@@ -1,0 +1,31 @@
+# 开发环境 Docker Compose 配置
+# 使用方法: ./deploy.sh start --env dev
+
+services:
+  resource-system:
+    build:
+      context: .
+      dockerfile: Dockerfile  # 使用普通 Dockerfile，不用缓存版
+    image: resource-system:latest
+    container_name: resource-system-dev
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    volumes:
+      # 源代码挂载（开发模式，代码实时生效）
+      - ./src/backend:/var/www/html
+      # 上传文件持久化存储
+      - ${UPLOAD_PATH:-./data/upload}:/data/upload
+      # 数据库持久化存储
+      - ${DB_PATH:-./data/db}:/var/www/html/storage
+    environment:
+      - TZ=Asia/Shanghai
+      - PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-0}
+      - PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-0}
+      - PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-0}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/directories"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

@@ -4,6 +4,68 @@
 
 ---
 
+## 2026-03-22 - 部署模式优化
+
+### 新增功能
+
+#### 1. 开发/生产环境部署模式
+
+新增 `deploy.sh` 脚本的多环境支持，可通过 `--mode` 参数切换部署模式：
+
+**开发模式** (`--mode dev`)
+- 源代码挂载到容器，修改后立即可见
+- 适合日常开发和快速调试
+- 修改后端代码无需重启容器
+- 修改前端代码需重新构建：`cd src/frontend && npm run build`
+
+**生产模式** (`--mode prod` 或默认)
+- 使用 `Dockerfile.cached` 多阶段构建
+- 代码打包到镜像中，部署更稳定
+- 使用预构建基础镜像加速构建（~30秒）
+- 适合生产环境部署
+
+#### 2. 新增文件
+
+- `docker-compose.dev.yml` - 开发环境配置文件
+  - 挂载源代码：`./src/backend:/var/www/html`
+  - 使用普通 `Dockerfile`（非缓存版本）
+  - 容器名称：`resource-system-dev`
+
+#### 3. 命令扩展
+
+所有 `deploy.sh` 命令均支持 `--mode` 参数：
+
+```bash
+# 开发模式
+./deploy.sh start --mode dev
+./deploy.sh stop --mode dev
+./deploy.sh logs --mode dev
+
+# 生产模式（默认）
+./deploy.sh start
+./deploy.sh stop
+./deploy.sh logs
+```
+
+### 改进
+
+- 移除生产环境源代码挂载，改用容器内代码部署
+- 统一响应拦截器配置，确保 API 数据正确返回
+- 更新文档说明开发/生产模式的区别和使用场景
+
+### 使用建议
+
+| 场景 | 推荐模式 | 命令 |
+|------|---------|------|
+| 日常开发 | 开发模式 | `./deploy.sh start --mode dev` |
+| 生产部署 | 生产模式 | `./deploy.sh start` |
+| 快速调试 | 开发模式 | `./deploy.sh start --mode dev` |
+| 测试环境 | 生产模式 | `./deploy.sh start --mode prod` |
+
+详细说明请参考 [部署指南](deployment.md)。
+
+---
+
 ## 2026-03-14 - API 响应拦截器修复
 
 ### 问题描述
